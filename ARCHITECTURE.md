@@ -1,5 +1,7 @@
 # Zero Touch Booking Agent — Workflow
 
+![Architecture Flow](./architecture-flow.png)
+
 ```mermaid
 flowchart LR
     %% ─── Central Orchestrator ───
