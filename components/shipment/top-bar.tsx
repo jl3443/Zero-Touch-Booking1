@@ -62,7 +62,6 @@ export function TopBar({
 
   const isDashboardActive = activeTab === "dashboard" || activeTab === "analytics"
   const isEmailActive = activeTab === "email-inbox" || activeTab === "email-sent"
-  const isBookingsActive = activeTab === "automation-rules" || activeTab === "policy" || activeTab === "api"
 
   // Badge bounce
   const [badgeBounce, setBadgeBounce] = useState(false)
@@ -173,7 +172,7 @@ export function TopBar({
               onClick={() => { bookings.setOpen(p => !p); dashboard.setOpen(false); email.setOpen(false) }}
               className={cn(
                 "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
-                isBookingsActive || (!isDashboardActive && !isEmailActive)
+                !isDashboardActive && !isEmailActive && !["automation-rules", "policy", "api"].includes(activeTab)
                   ? "bg-slate-900 text-white"
                   : "text-slate-600 hover:bg-slate-100"
               )}
@@ -216,46 +215,6 @@ export function TopBar({
                     </button>
                   ))}
 
-                  {/* Separator */}
-                  <div className="mx-2 my-1 h-px bg-slate-100" />
-
-                  {/* Automation Rules / Policy / API */}
-                  <button
-                    onClick={() => { onTabChange("automation-rules"); bookings.setOpen(false) }}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
-                      activeTab === "automation-rules"
-                        ? "bg-slate-100 font-semibold text-slate-900"
-                        : "text-slate-700 hover:bg-slate-50"
-                    )}
-                  >
-                    <Settings2 size={13} className="text-slate-500" />
-                    Automation Rules
-                  </button>
-                  <button
-                    onClick={() => { onTabChange("policy"); bookings.setOpen(false) }}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
-                      activeTab === "policy"
-                        ? "bg-slate-100 font-semibold text-slate-900"
-                        : "text-slate-700 hover:bg-slate-50"
-                    )}
-                  >
-                    <Shield size={13} className="text-slate-500" />
-                    Policy
-                  </button>
-                  <button
-                    onClick={() => { onTabChange("api"); bookings.setOpen(false) }}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
-                      activeTab === "api"
-                        ? "bg-slate-100 font-semibold text-slate-900"
-                        : "text-slate-700 hover:bg-slate-50"
-                    )}
-                  >
-                    <Code2 size={13} className="text-slate-500" />
-                    API
-                  </button>
                 </div>
               </div>
             )}
@@ -324,6 +283,38 @@ export function TopBar({
               </div>
             )}
           </div>
+
+          {/* Standalone nav items */}
+          <button
+            onClick={() => { onTabChange("automation-rules"); dashboard.setOpen(false); bookings.setOpen(false); email.setOpen(false) }}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
+              activeTab === "automation-rules" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+            )}
+          >
+            <Settings2 size={13} />
+            Rules
+          </button>
+          <button
+            onClick={() => { onTabChange("policy"); dashboard.setOpen(false); bookings.setOpen(false); email.setOpen(false) }}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
+              activeTab === "policy" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+            )}
+          >
+            <Shield size={13} />
+            Policy
+          </button>
+          <button
+            onClick={() => { onTabChange("api"); dashboard.setOpen(false); bookings.setOpen(false); email.setOpen(false) }}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
+              activeTab === "api" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+            )}
+          >
+            <Code2 size={13} />
+            API
+          </button>
         </div>
 
         {/* Right: Persona + AI */}
