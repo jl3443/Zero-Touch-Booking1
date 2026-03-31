@@ -1,34 +1,21 @@
 "use client"
 
 import { useState } from "react"
-import { Sidebar, type SidebarView } from "./sidebar"
-import { TopBar } from "./top-bar"
+import { TopBar, type ViewTab } from "./top-bar"
 import { Dashboard } from "./dashboard"
-import { ExceptionWorkbench } from "./exception-workbench"
-import { AgentActivityLog, type DynamicActivity } from "./agent-activity-log"
+import { type DynamicActivity } from "./agent-activity-log"
 import { AnalyticsPage } from "./analytics-page"
-import { DocumentsPage } from "./documents-page"
-import { WeatherTrafficPage } from "./weather-traffic-page"
-import { TimelinePage } from "./timeline-page"
 import { EmailInboxPage } from "./email-inbox-page"
 import { EmailSentPage, type SentEmailItem } from "./email-sent-page"
-import { CarrierScorecardPage } from "./carrier-scorecard-page"
-import { TrackingSearchPage } from "./tracking-search-page"
-import { SearchResultsPage } from "./search-results-page"
 import { AIChatPanel } from "./ai-chat-panel"
-import { BOOKING_REQUESTS, INBOX_EMAILS, DEMO_SHIPMENT, DEMO_SCENARIOS, DEMO_SCENARIO_BOOKING_MAP, type BookingRequest } from "@/lib/mock-data"
-import { SapSimulationPage } from "./sap-simulation-page"
+import { BOOKING_REQUESTS, INBOX_EMAILS, DEMO_SHIPMENT, DEMO_SCENARIO_BOOKING_MAP } from "@/lib/mock-data"
 import { AutomationRulesPage } from "./automation-rules"
 import { type Persona } from "./login-page"
 
 export function AppShell({ persona }: { persona?: Persona }) {
-  const [view, setView] = useState<SidebarView>("dashboard")
-  const [viewHistory, setViewHistory] = useState<Array<{ view: SidebarView; openShipmentId?: string }>>([])
-  const [backOpenShipmentId, setBackOpenShipmentId] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<ViewTab>("dashboard")
   const [searchQuery, setSearchQuery] = useState("")
   const [sentEmails, setSentEmails] = useState<SentEmailItem[]>([])
-  const [trackingPreselect, setTrackingPreselect] = useState<string | null>(null)
-  const [weatherHighlightId, setWeatherHighlightId] = useState<string | null>(null)
   const [aiChatOpen, setAiChatOpen] = useState(false)
   const [etaApprovedCount, setEtaApprovedCount] = useState(3)
   const [readEmailIds, setReadEmailIds] = useState<Set<string>>(new Set())
@@ -37,7 +24,7 @@ export function AppShell({ persona }: { persona?: Persona }) {
 
   // ── Demo mode state ──
   const [demoActive, setDemoActive] = useState(false)
-  const [demoStep, setDemoStep] = useState(0) // 0 = not started, 1-8 = current step, 9 = complete
+  const [demoStep, setDemoStep] = useState(0)
   const [demoPaused, setDemoPaused] = useState(false)
   const [demoScenario, setDemoScenario] = useState("happy-path")
   const [demoShipmentVisible, setDemoShipmentVisible] = useState(false)
@@ -56,7 +43,7 @@ export function AppShell({ persona }: { persona?: Persona }) {
 
   const handleDemoComplete = (elapsedTime: string) => {
     setDemoElapsedTime(elapsedTime)
-    setView("dashboard")
+    setActiveTab("dashboard")
     setShowCompletionModal(true)
   }
 
@@ -67,7 +54,7 @@ export function AppShell({ persona }: { persona?: Persona }) {
     setDemoPaused(false)
     setDemoShipmentVisible(true)
     setDemoExceptionActive(false)
-    setView("dashboard")
+    setActiveTab("dashboard")
     setSearchQuery("")
     addActivity("Demo mode started — new shipment detected from SAP TM", "ingested", "BKG-NEW-001")
   }
@@ -126,203 +113,124 @@ export function AppShell({ persona }: { persona?: Persona }) {
     addActivity(`Workflow resumed for ${shipmentId} — agent proceeding to next step`, "booking_submit", shipmentId)
   }
 
-  const exceptionsCount = BOOKING_REQUESTS.filter((s) => s.bookingStatus === "Exception" || s.bookingStatus === "Awaiting Approval").filter((s) => !resolvedExceptionIds.has(s.id)).length
-  const unreadInboxCount = INBOX_EMAILS.filter((e) => !e.read && !readEmailIds.has(e.id)).length + dynamicInboxEmails.filter((e) => !e.read && !readEmailIds.has(e.id)).length
-
-  const handleViewChange = (v: SidebarView | string, opts?: { sapOrderId?: string; emailId?: string }) => {
-    // Special: "weather-traffic-backup" triggers portal status with backup connection card
-    if (v === "weather-traffic-backup") {
-      setViewHistory((prev) => [...prev, { view, openShipmentId: undefined }])
-      setShowBackupConnection(true)
-      setView("weather-traffic")
-      setSearchQuery("")
-      return
-    }
-    setViewHistory((prev) => [...prev, { view }])
-    setView(v as SidebarView)
-    setSearchQuery("")
-    if (v !== "tracking-search") setTrackingPreselect(null)
-    if (v !== "weather-traffic") setWeatherHighlightId(null)
-    setBackOpenShipmentId(null)
-    // Set auto-open targets for SAP / Email
-    setSapAutoOpenOrderId(opts?.sapOrderId ?? null)
-    setEmailAutoSelectId(opts?.emailId ?? null)
-  }
-
-  const handleBack = () => {
-    if (viewHistory.length === 0) return
-    const entry = viewHistory[viewHistory.length - 1]
-    setViewHistory((h) => h.slice(0, -1))
-    setView(entry.view)
-    setBackOpenShipmentId(entry.openShipmentId ?? null)
-    setSearchQuery("")
-  }
-
   const handleSendNotification = (email: SentEmailItem) => {
     setSentEmails((prev) => [email, ...prev])
   }
 
-  const handleOpenWeather = (shipmentId: string) => {
-    setWeatherHighlightId(shipmentId)
-    setViewHistory((prev) => [...prev, { view, openShipmentId: shipmentId }])
-    setView("weather-traffic")
-    setSearchQuery("")
-    setBackOpenShipmentId(null)
+  const exceptionsCount = BOOKING_REQUESTS.filter((s) => s.bookingStatus === "Exception" || s.bookingStatus === "Awaiting Approval").filter((s) => !resolvedExceptionIds.has(s.id)).length
+  const unreadInboxCount = INBOX_EMAILS.filter((e) => !e.read && !readEmailIds.has(e.id)).length + dynamicInboxEmails.filter((e) => !e.read && !readEmailIds.has(e.id)).length
+
+  // Navigate between views (simplified from old sidebar-based system)
+  const handleNavigateView = (view: string) => {
+    if (view === "email-inbox" || view === "email-sent" || view === "analytics" || view === "dashboard" || view === "automation-rules") {
+      setActiveTab(view as ViewTab)
+    }
+    // For views that are now cut, redirect to dashboard
+    if (view === "weather-traffic" || view === "tracking-search" || view === "carrier-scorecard" || view === "documents" || view === "timeline" || view === "agent-activity" || view === "sap-tm" || view === "policies") {
+      setActiveTab("dashboard")
+    }
+    // Close panels when navigating
+    setSelectedShipmentId(null)
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F8F9FA]">
-      {/* Left sidebar */}
-      <Sidebar
-        view={view}
-        onViewChange={handleViewChange}
-        exceptionsCount={exceptionsCount || undefined}
-        unreadInboxCount={unreadInboxCount || undefined}
+    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
+      <TopBar
+        activeTab={activeTab}
+        onTabChange={(tab) => {
+          setActiveTab(tab)
+          setSelectedShipmentId(null)
+        }}
+        onAiToggle={() => setAiChatOpen((prev) => !prev)}
+        aiPanelOpen={aiChatOpen}
         persona={persona}
         demoActive={demoActive}
+        demoStep={demoStep}
+        demoScenario={demoScenario}
         onStartDemo={handleStartDemo}
         onStopDemo={handleStopDemo}
+        onGoToDashboard={() => { setActiveTab("dashboard"); setDemoShipmentVisible(true) }}
+        unreadInboxCount={unreadInboxCount}
+        exceptionsCount={exceptionsCount}
       />
 
-      {/* Main area */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <TopBar
-          onSearch={setSearchQuery}
-          onToggleAIChat={() => setAiChatOpen((prev) => !prev)}
-          aiChatOpen={aiChatOpen}
-          canGoBack={viewHistory.length > 0}
-          onBack={handleBack}
-          demoActive={demoActive}
-          demoStep={demoStep}
-          onStopDemo={handleStopDemo}
-          onGoToDashboard={() => { setView("dashboard"); setDemoShipmentVisible(true) }}
-        />
-
-        {/* Search results overlay — shown when typing in search bar */}
-        {searchQuery.trim() ? (
-          <SearchResultsPage
-            query={searchQuery}
-            onOpenWeather={handleOpenWeather}
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === "dashboard" && (
+          <Dashboard
+            searchQuery={searchQuery}
+            onViewChange={handleNavigateView}
+            onOpenWeather={() => {}}
             onSendNotification={handleSendNotification}
+            autoOpenShipmentId={undefined}
+            onEtaApproved={handleEtaApproved}
+            etaUpdatedCount={etaApprovedCount}
+            demoActive={demoActive}
+            demoShipmentVisible={demoShipmentVisible}
+            demoStep={demoStep}
+            demoPaused={demoPaused}
+            demoScenario={demoScenario}
+            demoExceptionActive={demoExceptionActive}
+            onDemoStepAdvance={handleDemoStepAdvance}
+            onDemoPause={() => setDemoPaused(true)}
+            onDemoResume={() => setDemoPaused(false)}
+            onDemoExceptionResolved={() => {
+              setDemoExceptionActive(false)
+              const bookingId = DEMO_SCENARIO_BOOKING_MAP[demoScenario]
+              if (bookingId) {
+                setResolvedExceptionIds((prev) => new Set([...prev, bookingId]))
+              }
+            }}
+            onDemoExceptionTriggered={() => setDemoExceptionActive(true)}
+            onDemoShipmentDismiss={() => setDemoShipmentVisible(false)}
+            onDemoComplete={handleDemoComplete}
+            onAddInboxEmail={handleAddInboxEmail}
+            demoReturnedFromInbox={demoReturnedFromInbox}
+            onDemoReturnedFromInboxConsumed={() => setDemoReturnedFromInbox(false)}
+            showCompletionModal={showCompletionModal}
+            onCloseCompletionModal={() => { setShowCompletionModal(false); handleStopDemo() }}
+            demoElapsedTime={demoElapsedTime}
           />
-        ) : (
-          <>
-            {view === "dashboard" && (
-              <Dashboard
-                searchQuery={searchQuery}
-                onViewChange={handleViewChange}
-                onOpenWeather={handleOpenWeather}
-                onSendNotification={handleSendNotification}
-                autoOpenShipmentId={backOpenShipmentId ?? undefined}
-                onEtaApproved={handleEtaApproved}
-                etaUpdatedCount={etaApprovedCount}
-                demoActive={demoActive}
-                demoShipmentVisible={demoShipmentVisible}
-                demoStep={demoStep}
-                demoPaused={demoPaused}
-                demoScenario={demoScenario}
-                demoExceptionActive={demoExceptionActive}
-                onDemoStepAdvance={handleDemoStepAdvance}
-                onDemoPause={() => setDemoPaused(true)}
-                onDemoResume={() => setDemoPaused(false)}
-                onDemoExceptionResolved={() => {
-                  setDemoExceptionActive(false)
-                  // Mark the corresponding workbench exception as resolved
-                  const bookingId = DEMO_SCENARIO_BOOKING_MAP[demoScenario]
-                  if (bookingId) {
-                    setResolvedExceptionIds((prev) => new Set([...prev, bookingId]))
-                  }
-                }}
-                onDemoExceptionTriggered={() => setDemoExceptionActive(true)}
-                onDemoShipmentDismiss={() => setDemoShipmentVisible(false)}
-                onDemoComplete={handleDemoComplete}
-                onAddInboxEmail={handleAddInboxEmail}
-                demoReturnedFromInbox={demoReturnedFromInbox}
-                onDemoReturnedFromInboxConsumed={() => setDemoReturnedFromInbox(false)}
-                showCompletionModal={showCompletionModal}
-                onCloseCompletionModal={() => { setShowCompletionModal(false); handleStopDemo() }}
-                demoElapsedTime={demoElapsedTime}
-              />
-            )}
-
-            {view === "analytics" && <AnalyticsPage etaUpdatedCount={etaApprovedCount} />}
-
-            {view === "sap-tm" && <SapSimulationPage autoOpenOrderId={sapAutoOpenOrderId ?? undefined} demoUpdated={demoStep >= 7} />}
-
-            {view === "policies" && <AutomationRulesPage />}
-
-            {view === "tracking-search" && (
-              <TrackingSearchPage
-                preselectedId={trackingPreselect ?? undefined}
-                onSendNotification={handleSendNotification}
-              />
-            )}
-
-            {view === "carrier-scorecard" && <CarrierScorecardPage />}
-
-            {view === "exceptions" && (
-              <ExceptionWorkbench
-                onSendNotification={handleSendNotification}
-                onOpenWeather={handleOpenWeather}
-                onExceptionResolved={handleExceptionResolved}
-              />
-            )}
-
-            {view === "documents" && <DocumentsPage />}
-
-            {view === "weather-traffic" && (
-              <WeatherTrafficPage
-                highlightShipmentId={weatherHighlightId ?? undefined}
-                showBackupConnection={showBackupConnection}
-                onBackupConnectionDone={() => {
-                  setShowBackupConnection(false)
-                  // Return to dashboard and continue demo flow
-                  handleViewChange("dashboard")
-                  setDemoShipmentVisible(true)
-                }}
-              />
-            )}
-
-            {view === "timeline" && <TimelinePage />}
-
-            {view === "email-inbox" && (
-              <EmailInboxPage
-                onOpenTracking={(id) => {
-                  setTrackingPreselect(id)
-                  handleViewChange("tracking-search")
-                }}
-                onMarkRead={handleMarkEmailRead}
-                dynamicEmails={dynamicInboxEmails}
-                onReturnToFlow={() => {
-                  // Signal that user returned from inbox — DemoExceptionOverlay will show
-                  // the completion animation (fill fields / negotiation spinner) then auto-resolve
-                  setDemoReturnedFromInbox(true)
-                  handleViewChange("dashboard")
-                  setDemoShipmentVisible(true)
-                }}
-              />
-            )}
-
-            {view === "email-sent" && <EmailSentPage dynamicEmails={sentEmails} autoSelectId={emailAutoSelectId ?? undefined} />}
-
-            {view === "agent-activity" && (
-              <AgentActivityLog
-                onShipmentClick={() => handleViewChange("dashboard")}
-                dynamicActivities={dynamicActivities}
-              />
-            )}
-          </>
         )}
 
+        {activeTab === "analytics" && <AnalyticsPage etaUpdatedCount={etaApprovedCount} />}
+
+        {activeTab === "automation-rules" && <AutomationRulesPage />}
+
+        {activeTab === "email-inbox" && (
+          <EmailInboxPage
+            onOpenTracking={() => {}}
+            onMarkRead={handleMarkEmailRead}
+            dynamicEmails={dynamicInboxEmails}
+            onReturnToFlow={() => {
+              setDemoReturnedFromInbox(true)
+              setActiveTab("dashboard")
+              setDemoShipmentVisible(true)
+            }}
+          />
+        )}
+
+        {activeTab === "email-sent" && <EmailSentPage dynamicEmails={sentEmails} autoSelectId={emailAutoSelectId ?? undefined} />}
       </div>
 
-      {/* AI Chat Panel — fixed right-side overlay */}
-      <AIChatPanel
-        open={aiChatOpen}
-        onClose={() => setAiChatOpen(false)}
-        onOpenWeather={handleOpenWeather}
-        onSendNotification={handleSendNotification}
-      />
+      {/* AI Chat Panel */}
+      {aiChatOpen && (
+        <AIChatPanel
+            open={aiChatOpen}
+            onClose={() => setAiChatOpen(false)}
+            onOpenWeather={() => {}}
+            onSendNotification={handleSendNotification}
+          />
+      )}
+
+      {/* Built by TCS MGF badge */}
+      <div className="fixed bottom-4 right-4 z-[9999] flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-slate-200 shadow-lg px-3 py-1.5">
+        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center">
+          <span className="text-[8px] font-bold text-white">TCS</span>
+        </div>
+        <span className="text-[11px] text-slate-600">
+          Built by <span className="font-semibold text-slate-800">TCS MGF</span>
+        </span>
+      </div>
     </div>
   )
 }

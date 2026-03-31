@@ -1,53 +1,89 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Search, RefreshCw, Brain, ChevronLeft, Zap, Square, ArrowRight } from "lucide-react"
-import { DEMO_STEP_DETAILS } from "@/lib/mock-data"
+import { useState, useRef, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Sparkles, UserCircle, ChevronDown, Mail, Inbox, Send, BarChart2, Ship, Square, ArrowRight, Settings2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { DEMO_SCENARIOS, DEMO_STEP_DETAILS } from "@/lib/mock-data"
+import { type Persona } from "./login-page"
+
+export type ViewTab = "dashboard" | "analytics" | "email-inbox" | "email-sent" | "automation-rules"
 
 interface TopBarProps {
-  onSearch: (q: string) => void
-  onToggleAIChat?: () => void
-  aiChatOpen?: boolean
-  canGoBack?: boolean
-  onBack?: () => void
+  activeTab: ViewTab
+  onTabChange: (tab: ViewTab) => void
+  onAiToggle: () => void
+  aiPanelOpen: boolean
+  persona?: Persona
+  // Demo mode
   demoActive?: boolean
   demoStep?: number
+  demoScenario?: string
+  onStartDemo?: (scenarioId: string) => void
   onStopDemo?: () => void
   onGoToDashboard?: () => void
+  // Badges
+  unreadInboxCount?: number
+  exceptionsCount?: number
 }
 
-export function TopBar({ onSearch, onToggleAIChat, aiChatOpen, canGoBack, onBack, demoActive, demoStep, onStopDemo, onGoToDashboard }: TopBarProps) {
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
-  const [spinning, setSpinning] = useState(false)
-  const [query, setQuery] = useState("")
-
+function useDropdown() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    setLastRefresh(new Date())
-    const interval = setInterval(() => {
-      setLastRefresh(new Date())
-    }, 60000)
-    return () => clearInterval(interval)
-  }, [])
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [open])
+  return { open, setOpen, ref }
+}
 
-  const handleRefresh = () => {
-    setSpinning(true)
-    setTimeout(() => {
-      setLastRefresh(new Date())
-      setSpinning(false)
-    }, 800)
-  }
+export function TopBar({
+  activeTab,
+  onTabChange,
+  onAiToggle,
+  aiPanelOpen,
+  persona,
+  demoActive,
+  demoStep,
+  demoScenario,
+  onStartDemo,
+  onStopDemo,
+  onGoToDashboard,
+  unreadInboxCount = 0,
+  exceptionsCount = 0,
+}: TopBarProps) {
+  const dashboard = useDropdown()
+  const bookings = useDropdown()
+  const email = useDropdown()
 
-  const timeStr = lastRefresh
-    ? lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : "--:--"
+  const isDashboardActive = activeTab === "dashboard" || activeTab === "analytics"
+  const isEmailActive = activeTab === "email-inbox" || activeTab === "email-sent"
+  const isBookingsActive = activeTab === "automation-rules"
 
+  // Badge bounce
+  const [badgeBounce, setBadgeBounce] = useState(false)
+  const prevUnread = useRef(unreadInboxCount)
+  useEffect(() => {
+    if (unreadInboxCount > prevUnread.current) {
+      setBadgeBounce(true)
+      const timer = setTimeout(() => setBadgeBounce(false), 600)
+      return () => clearTimeout(timer)
+    }
+    prevUnread.current = unreadInboxCount
+  }, [unreadInboxCount])
+
+  // Demo step label
   const stepLabel = demoStep && demoStep >= 1 && demoStep <= 8
     ? DEMO_STEP_DETAILS[demoStep - 1].thinkingLabel.replace("...", "")
     : demoStep && demoStep > 8 ? "Booking Complete" : "Starting..."
 
   return (
-    <header className="bg-[#1E293B] text-white border-b border-slate-700">
+    <header className="shrink-0">
+      {/* Demo mode banner */}
       {demoActive && (
         <div className="flex items-center justify-between px-5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[11px]">
           <div className="flex items-center gap-2">
@@ -79,74 +115,217 @@ export function TopBar({ onSearch, onToggleAIChat, aiChatOpen, canGoBack, onBack
           </button>
         </div>
       )}
-      <div className="flex items-center justify-between px-5 py-3">
-        {/* Left: back button + search */}
-        <div className="flex items-center gap-2 flex-1 max-w-xl">
-          {canGoBack && (
+
+      {/* Main nav bar */}
+      <div className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-6">
+        {/* Left: Logo + nav dropdowns */}
+        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-lg text-[#0000B3]">✦</span>
+            <span className="text-lg font-bold text-[#0000B3] tracking-tight">Booking Agent</span>
+          </div>
+
+          {/* Dashboard dropdown */}
+          <div className="relative" ref={dashboard.ref}>
             <button
-              onClick={onBack}
-              className="shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-md bg-slate-700 border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500 transition-colors text-xs font-medium"
-              title="Go back"
+              onClick={() => { dashboard.setOpen(p => !p); bookings.setOpen(false); email.setOpen(false) }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
+                isDashboardActive
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600 hover:bg-slate-100"
+              )}
             >
-              <ChevronLeft size={14} />
-              <span>Back</span>
+              Dashboard
+              <ChevronDown size={13} className={cn("transition-transform", dashboard.open && "rotate-180")} />
             </button>
-          )}
-          <div className="relative flex-1">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search bookings by ID, carrier, lane, status…"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value)
-                onSearch(e.target.value)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  setQuery("")
-                  onSearch("")
-                }
-              }}
-              className="w-full bg-slate-700 border border-slate-600 rounded-md pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 transition-colors"
-            />
+            {dashboard.open && (
+              <div className="absolute left-0 top-full mt-1.5 w-44 rounded-xl border border-slate-200 bg-white shadow-xl z-[100] overflow-hidden">
+                <div className="px-2 py-1.5">
+                  <button
+                    onClick={() => { onTabChange("dashboard"); dashboard.setOpen(false) }}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors",
+                      activeTab === "dashboard" ? "bg-slate-100 font-semibold text-slate-900" : "text-slate-700 hover:bg-slate-50"
+                    )}
+                  >
+                    <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                    Overview
+                  </button>
+                  <button
+                    onClick={() => { onTabChange("analytics"); dashboard.setOpen(false) }}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors",
+                      activeTab === "analytics" ? "bg-slate-100 font-semibold text-slate-900" : "text-slate-700 hover:bg-slate-50"
+                    )}
+                  >
+                    <BarChart2 size={13} className="text-slate-500" />
+                    Analytics
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bookings dropdown */}
+          <div className="relative" ref={bookings.ref}>
+            <button
+              onClick={() => { bookings.setOpen(p => !p); dashboard.setOpen(false); email.setOpen(false) }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
+                isBookingsActive || (!isDashboardActive && !isEmailActive)
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600 hover:bg-slate-100"
+              )}
+            >
+              <Ship size={13} />
+              Bookings
+              {exceptionsCount > 0 && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                  {exceptionsCount}
+                </span>
+              )}
+              <ChevronDown size={13} className={cn("transition-transform", bookings.open && "rotate-180")} />
+            </button>
+            {bookings.open && (
+              <div className="absolute left-0 top-full mt-1.5 w-64 rounded-xl border border-slate-200 bg-white shadow-xl z-[100] overflow-hidden">
+                <div className="px-2 py-1.5 space-y-0.5">
+                  {/* Demo Scenarios */}
+                  <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Demo Scenarios</p>
+                  {DEMO_SCENARIOS.map(scenario => (
+                    <button
+                      key={scenario.id}
+                      onClick={() => {
+                        onStartDemo?.(scenario.id)
+                        bookings.setOpen(false)
+                      }}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                        demoScenario === scenario.id && demoActive
+                          ? "bg-blue-50 border border-blue-200 font-semibold text-blue-700"
+                          : "text-slate-700 hover:bg-slate-50"
+                      )}
+                    >
+                      <div className={cn(
+                        "h-2 w-2 rounded-full shrink-0",
+                        scenario.id === "happy-path" ? "bg-green-500" :
+                        scenario.id === "rate-mismatch" || scenario.id === "missing-data" ? "bg-amber-500" :
+                        "bg-red-500"
+                      )} />
+                      <span className="text-left leading-tight">{scenario.name}</span>
+                    </button>
+                  ))}
+
+                  {/* Separator */}
+                  <div className="mx-2 my-1 h-px bg-slate-100" />
+
+                  {/* Automation Rules */}
+                  <button
+                    onClick={() => { onTabChange("automation-rules"); bookings.setOpen(false) }}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                      activeTab === "automation-rules"
+                        ? "bg-slate-100 font-semibold text-slate-900"
+                        : "text-slate-700 hover:bg-slate-50"
+                    )}
+                  >
+                    <Settings2 size={13} className="text-slate-500" />
+                    Automation Rules
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Email dropdown */}
+          <div className="relative" ref={email.ref}>
+            <button
+              onClick={() => { email.setOpen(p => !p); dashboard.setOpen(false); bookings.setOpen(false) }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
+                isEmailActive
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600 hover:bg-slate-100"
+              )}
+            >
+              <Mail size={13} />
+              Email
+              <AnimatePresence>
+                {unreadInboxCount > 0 && (
+                  <motion.span
+                    key="inbox-badge"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: badgeBounce ? [1, 1.4, 1] : 1 }}
+                    exit={{ scale: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                    className="flex h-4 w-4 items-center justify-center rounded-full bg-[#0000B3] text-[9px] font-bold text-white"
+                  >
+                    {unreadInboxCount}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              <ChevronDown size={13} className={cn("transition-transform", email.open && "rotate-180")} />
+            </button>
+            {email.open && (
+              <div className="absolute left-0 top-full mt-1.5 w-44 rounded-xl border border-slate-200 bg-white shadow-xl z-[100] overflow-hidden">
+                <div className="px-2 py-1.5">
+                  <button
+                    onClick={() => { onTabChange("email-inbox"); email.setOpen(false) }}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors",
+                      activeTab === "email-inbox" ? "bg-slate-100 font-semibold text-slate-900" : "text-slate-700 hover:bg-slate-50"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Inbox size={13} className="text-slate-500" />
+                      Inbox
+                    </div>
+                    {unreadInboxCount > 0 && (
+                      <span className="rounded-full bg-[#0000B3] px-1.5 py-0.5 text-[9px] font-bold text-white">
+                        {unreadInboxCount}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => { onTabChange("email-sent"); email.setOpen(false) }}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors",
+                      activeTab === "email-sent" ? "bg-slate-100 font-semibold text-slate-900" : "text-slate-700 hover:bg-slate-50"
+                    )}
+                  >
+                    <Send size={13} className="text-slate-500" />
+                    Sent
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right: AI chat toggle + live indicator + refresh */}
-        <div className="flex items-center gap-3 text-xs text-slate-400 ml-4">
-          {/* AI Chat toggle */}
+        {/* Right: Persona + AI */}
+        <div className="flex items-center gap-2.5">
+          {/* Persona indicator */}
+          {persona && (
+            <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs">
+              <div className={cn("h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white", persona.color)}>
+                {persona.initials}
+              </div>
+              <span className="font-medium text-slate-700">{persona.name}</span>
+            </div>
+          )}
+
+          {/* AI toggle */}
           <button
-            onClick={onToggleAIChat}
+            onClick={onAiToggle}
             className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors text-xs font-medium",
-              aiChatOpen
-                ? "bg-indigo-600 border-indigo-500 text-white"
-                : "bg-slate-700 border-slate-600 text-slate-300 hover:text-white hover:border-indigo-500"
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
+              aiPanelOpen
+                ? "bg-[#0000B3] text-white shadow-sm"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             )}
-            title="Open AI Assistant"
           >
-            <Brain size={12} className={aiChatOpen ? "" : "text-indigo-400"} />
-            <span>AI</span>
-          </button>
-
-          {/* Divider */}
-          <span className="w-px h-4 bg-slate-600" />
-
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse" />
-            Live
-          </span>
-          <span>
-            Last refresh: <span className="text-slate-300 font-mono">{timeStr}</span>
-          </span>
-          <button
-            onClick={handleRefresh}
-            className="flex items-center gap-1 text-slate-300 hover:text-white transition-colors px-2 py-1 rounded hover:bg-slate-700"
-            aria-label="Refresh data"
-          >
-            <RefreshCw size={12} className={spinning ? "animate-spin" : ""} />
-            <span className="text-xs">Refresh</span>
+            <Sparkles size={14} />
+            AI
           </button>
         </div>
       </div>
