@@ -11,11 +11,15 @@ import {
 } from "@/lib/mock-data"
 import { AgentActivityLog } from "./agent-activity-log"
 import { cn } from "@/lib/utils"
+import { motion } from "framer-motion"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, ReferenceLine,
 } from "recharts"
-import { TrendingUp, Clock, CheckCircle2, BarChart2, Brain, Route, Wrench, AlertTriangle, Users } from "lucide-react"
+import { TrendingUp, Clock, CheckCircle2, BarChart2, Brain, Route, Wrench, AlertTriangle, Users, RefreshCw } from "lucide-react"
+
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
+const fadeUp = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } }
 
 // ── Derived data ──────────────────────────────────────────────────────────────
 
@@ -47,12 +51,32 @@ export function AnalyticsPage({ etaUpdatedCount = 3 }: { etaUpdatedCount?: numbe
     return () => clearTimeout(t)
   }, [])
 
+  if (insightThinking) {
+    return (
+      <div className="flex-1 flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#0000B3]/10">
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+              <RefreshCw size={20} className="text-[#0000B3]" />
+            </motion.div>
+          </div>
+          <p className="text-sm font-medium text-slate-600">Loading analytics</p>
+          <div className="mt-2 flex items-center justify-center gap-1">
+            {[0, 1, 2].map(i => (
+              <motion.div key={i} className="h-1.5 w-1.5 rounded-full bg-[#0000B3]" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex-1 overflow-y-auto bg-[#F8F9FA]">
-      <div className="p-6 max-w-[1400px] mx-auto space-y-5">
+      <motion.div className="p-6 max-w-[1400px] mx-auto space-y-5" variants={stagger} initial="hidden" animate="show">
 
         {/* Header */}
-        <div className="flex items-center gap-3">
+        <motion.div variants={fadeUp} className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-indigo-600/10 flex items-center justify-center">
             <BarChart2 size={18} className="text-indigo-600" />
           </div>
@@ -60,17 +84,17 @@ export function AnalyticsPage({ etaUpdatedCount = 3 }: { etaUpdatedCount?: numbe
             <h2 className="text-lg font-semibold text-gray-800">Analytics</h2>
             <p className="text-xs text-gray-400">Exception handling & agent performance &middot; March 2025 &middot; {BOOKING_REQUESTS.length} active bookings</p>
           </div>
-        </div>
+        </motion.div>
 
         {/* KPI strip */}
-        <div className="grid grid-cols-4 gap-3">
+        <motion.div variants={fadeUp} className="grid grid-cols-4 gap-3">
           {[
             { label: "Bookings Completed (24h)", value: `${bookingsCompletedCount}`, icon: <CheckCircle2 size={16} />, color: "text-green-600" },
             { label: "Avg Resolution Time", value: "2.4h", icon: <Clock size={16} />, color: "text-blue-600" },
             { label: "Zero-Touch Rate", value: "84%", icon: <TrendingUp size={16} />, color: "text-indigo-600" },
             { label: "Manual Interventions", value: "2", icon: <Wrench size={16} />, color: "text-amber-600" },
           ].map((k) => (
-            <div key={k.label} className="bg-white rounded-xl border border-gray-200 p-4">
+            <div key={k.label} className="bg-white rounded-xl border border-gray-200 p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="flex items-center gap-2 mb-1">
                 <span className={cn("shrink-0", k.color)}>{k.icon}</span>
                 <span className="text-[11px] text-gray-400 font-medium">{k.label}</span>
@@ -78,10 +102,10 @@ export function AnalyticsPage({ etaUpdatedCount = 3 }: { etaUpdatedCount?: numbe
               <div className={cn("text-2xl font-bold", k.color)}>{k.value}</div>
             </div>
           ))}
-        </div>
+        </motion.div>
 
         {/* ── New Exception-Focused Charts (3-col) ──────────────────────── */}
-        <div className="grid grid-cols-3 gap-4">
+        <motion.div variants={fadeUp} className="grid grid-cols-3 gap-4">
 
           {/* Exception Resolution Trend — line chart */}
           <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -195,10 +219,10 @@ export function AnalyticsPage({ etaUpdatedCount = 3 }: { etaUpdatedCount?: numbe
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-500 inline-block" /> Below SLA</span>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Zero-Touch Rate by Lane — bar chart */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <motion.div variants={fadeUp} className="bg-white rounded-xl border border-gray-200 p-4">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Zero-Touch Rate by Lane (%)</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={zeroTouchByLane} margin={{ left: 0, right: 20 }}>
@@ -212,10 +236,10 @@ export function AnalyticsPage({ etaUpdatedCount = 3 }: { etaUpdatedCount?: numbe
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </motion.div>
 
         {/* Rate Analysis: Contract vs Spot by Carrier */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <motion.div variants={fadeUp} className="bg-white rounded-xl border border-gray-200 p-4">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Rate Analysis: Contract vs Spot by Carrier ($)</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={rateAnalysis} margin={{ left: 0, right: 20 }}>
@@ -230,10 +254,10 @@ export function AnalyticsPage({ etaUpdatedCount = 3 }: { etaUpdatedCount?: numbe
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" /> Contract Rate</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-500 inline-block" /> Spot Rate</span>
           </div>
-        </div>
+        </motion.div>
 
         {/* Lane Performance Table */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <motion.div variants={fadeUp} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
             <Route size={14} className="text-indigo-600" />
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Lane Performance</h3>
@@ -273,10 +297,10 @@ export function AnalyticsPage({ etaUpdatedCount = 3 }: { etaUpdatedCount?: numbe
               ))}
             </tbody>
           </table>
-        </div>
+        </motion.div>
 
         {/* Agent Automation Summary */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <motion.div variants={fadeUp} className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-4">
             <Brain size={14} className="text-indigo-600" />
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Agent Automation Summary</h3>
@@ -315,11 +339,13 @@ export function AnalyticsPage({ etaUpdatedCount = 3 }: { etaUpdatedCount?: numbe
               </p>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Recent agent activity */}
-        <AgentActivityLog condensed maxItems={5} />
-      </div>
+        <motion.div variants={fadeUp}>
+          <AgentActivityLog condensed maxItems={5} />
+        </motion.div>
+      </motion.div>
     </div>
   )
 }

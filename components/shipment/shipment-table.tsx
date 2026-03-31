@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { BOOKING_REQUESTS, type BookingExceptionType, type Severity, type TransportMode, type BookingRequest } from "@/lib/mock-data"
 import { SeverityBadge, ModeBadge, ExceptionBadge, BookingStatusBadge, ReasonChips, CarrierBadge } from "./shared"
+import { motion } from "framer-motion"
 import { ChevronDown, ChevronUp, Filter } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -146,8 +147,11 @@ export function ShipmentTable({ searchQuery, activeFilter, onSelectShipment, sel
               </tr>
             )}
             {(expanded ? filtered : filtered.slice(0, initialMaxRows)).map((s, i) => (
-              <tr
+              <motion.tr
                 key={s.id}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: i * 0.03 }}
                 onClick={() => onSelectShipment(s)}
                 className={cn(
                   "border-b border-gray-100 cursor-pointer transition-colors",
@@ -182,7 +186,7 @@ export function ShipmentTable({ searchQuery, activeFilter, onSelectShipment, sel
                 <td className="px-3 py-2.5">
                   <span className="text-blue-700 font-medium hover:underline truncate block max-w-[140px]" title={s.recommendedAction}>{s.recommendedAction}</span>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
           </tbody>
         </table>

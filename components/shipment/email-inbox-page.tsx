@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { INBOX_EMAILS, type InboxEmail, type EmailTag } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
-import { Mail, MailOpen, Tag, Clock, Package, ChevronLeft, Brain, AlertTriangle, CheckCircle2, ArrowRight, CheckCircle, Loader2 } from "lucide-react"
+import { motion } from "framer-motion"
+import { Mail, MailOpen, Tag, Clock, Package, ChevronLeft, Brain, AlertTriangle, CheckCircle2, ArrowRight, CheckCircle, Loader2, RefreshCw } from "lucide-react"
 
 const TAG_CONFIG: Record<EmailTag, { label: string; color: string }> = {
   sap:       { label: "SAP",       color: "bg-blue-50 border-blue-200 text-blue-700" },
@@ -39,6 +40,12 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
   const [activeTagFilter, setActiveTagFilter] = useState<EmailTag | null>(null)
   const [analyzingEmail, setAnalyzingEmail] = useState<string | null>(null)
   const [analyzedEmails, setAnalyzedEmails] = useState<Record<string, string>>({})
+  const [initialLoading, setInitialLoading] = useState(true)
+
+  useEffect(() => {
+    const t = setTimeout(() => setInitialLoading(false), 800)
+    return () => clearTimeout(t)
+  }, [])
 
   // Task 5a: AI thinking animation on email click
   const [emailThinking, setEmailThinking] = useState(false)
@@ -125,11 +132,31 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
   // All unique tags for filter bar
   const allTags = Object.keys(TAG_CONFIG) as EmailTag[]
 
+  if (initialLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#0000B3]/10">
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+              <RefreshCw size={20} className="text-[#0000B3]" />
+            </motion.div>
+          </div>
+          <p className="text-sm font-medium text-slate-600">Loading inbox</p>
+          <div className="mt-2 flex items-center justify-center gap-1">
+            {[0, 1, 2].map(i => (
+              <motion.div key={i} className="h-1.5 w-1.5 rounded-full bg-[#0000B3]" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex-1 overflow-hidden bg-[#F8F9FA] flex flex-col">
       <div className="p-6 pb-3 max-w-[1100px] mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center">
               <Mail size={16} className="text-blue-600" />
@@ -144,7 +171,7 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
               {unreadCount} unread
             </span>
           )}
-        </div>
+        </motion.div>
 
         {/* Tag filter bar */}
         <div className="flex items-center gap-1.5 mb-3">
