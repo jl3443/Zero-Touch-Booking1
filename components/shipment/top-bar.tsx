@@ -2,12 +2,12 @@
 
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Sparkles, UserCircle, ChevronDown, Mail, Inbox, Send, BarChart2, Ship, Square, ArrowRight, Settings2 } from "lucide-react"
+import { Sparkles, UserCircle, ChevronDown, Mail, Inbox, Send, BarChart2, Ship, Square, ArrowRight, Settings2, Shield, Code2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DEMO_SCENARIOS, DEMO_STEP_DETAILS } from "@/lib/mock-data"
 import { type Persona } from "./login-page"
 
-export type ViewTab = "dashboard" | "analytics" | "email-inbox" | "email-sent" | "automation-rules"
+export type ViewTab = "dashboard" | "analytics" | "email-inbox" | "email-sent" | "automation-rules" | "policy" | "api"
 
 interface TopBarProps {
   activeTab: ViewTab
@@ -62,7 +62,7 @@ export function TopBar({
 
   const isDashboardActive = activeTab === "dashboard" || activeTab === "analytics"
   const isEmailActive = activeTab === "email-inbox" || activeTab === "email-sent"
-  const isBookingsActive = activeTab === "automation-rules"
+  const isBookingsActive = activeTab === "automation-rules" || activeTab === "policy" || activeTab === "api"
 
   // Badge bounce
   const [badgeBounce, setBadgeBounce] = useState(false)
@@ -212,14 +212,14 @@ export function TopBar({
                         scenario.id === "rate-mismatch" || scenario.id === "missing-data" ? "bg-amber-500" :
                         "bg-red-500"
                       )} />
-                      <span className="text-left leading-tight">{scenario.name}</span>
+                      <span className="text-left leading-tight">{scenario.label}</span>
                     </button>
                   ))}
 
                   {/* Separator */}
                   <div className="mx-2 my-1 h-px bg-slate-100" />
 
-                  {/* Automation Rules */}
+                  {/* Automation Rules / Policy / API */}
                   <button
                     onClick={() => { onTabChange("automation-rules"); bookings.setOpen(false) }}
                     className={cn(
@@ -231,6 +231,30 @@ export function TopBar({
                   >
                     <Settings2 size={13} className="text-slate-500" />
                     Automation Rules
+                  </button>
+                  <button
+                    onClick={() => { onTabChange("policy"); bookings.setOpen(false) }}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                      activeTab === "policy"
+                        ? "bg-slate-100 font-semibold text-slate-900"
+                        : "text-slate-700 hover:bg-slate-50"
+                    )}
+                  >
+                    <Shield size={13} className="text-slate-500" />
+                    Policy
+                  </button>
+                  <button
+                    onClick={() => { onTabChange("api"); bookings.setOpen(false) }}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                      activeTab === "api"
+                        ? "bg-slate-100 font-semibold text-slate-900"
+                        : "text-slate-700 hover:bg-slate-50"
+                    )}
+                  >
+                    <Code2 size={13} className="text-slate-500" />
+                    API
                   </button>
                 </div>
               </div>

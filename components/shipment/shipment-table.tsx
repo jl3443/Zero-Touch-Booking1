@@ -16,6 +16,7 @@ interface ShipmentTableProps {
   activeFilter: string | null
   onSelectShipment: (shipment: Shipment) => void
   selectedId: string | null
+  initialMaxRows?: number
 }
 
 const MODE_OPTIONS: TransportMode[] = ["Ocean", "Road", "Air"]
@@ -60,12 +61,13 @@ function WorkflowProgress({ steps }: { steps: BookingRequest["workflowSteps"] })
   )
 }
 
-export function ShipmentTable({ searchQuery, activeFilter, onSelectShipment, selectedId }: ShipmentTableProps) {
+export function ShipmentTable({ searchQuery, activeFilter, onSelectShipment, selectedId, initialMaxRows = 5 }: ShipmentTableProps) {
   const [modeFilter, setModeFilter] = useState<TransportMode | "All">("All")
   const [severityFilter, setSeverityFilter] = useState<Severity | "All">("All")
   const [exceptionFilter, setExceptionFilter] = useState<BookingExceptionType | "All">("All")
   const [sortField, setSortField] = useState<SortField>("severity")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
+  const [expanded, setExpanded] = useState(false)
 
   const filtered = BOOKING_REQUESTS.filter((s) => {
     if (modeFilter !== "All" && s.mode !== modeFilter) return false
@@ -143,7 +145,7 @@ export function ShipmentTable({ searchQuery, activeFilter, onSelectShipment, sel
                 <td colSpan={12} className="text-center py-10 text-gray-400">No bookings match the current filters.</td>
               </tr>
             )}
-            {filtered.map((s, i) => (
+            {(expanded ? filtered : filtered.slice(0, initialMaxRows)).map((s, i) => (
               <tr
                 key={s.id}
                 onClick={() => onSelectShipment(s)}
@@ -185,6 +187,22 @@ export function ShipmentTable({ searchQuery, activeFilter, onSelectShipment, sel
           </tbody>
         </table>
       </div>
+
+      {/* Show more / Show less */}
+      {filtered.length > initialMaxRows && (
+        <div className="flex items-center justify-center border-t border-gray-100 py-2">
+          <button
+            onClick={() => setExpanded(p => !p)}
+            className="flex items-center gap-1.5 text-[11px] font-medium text-[#0000B3] hover:text-[#00009A] transition-colors px-4 py-1 rounded-lg hover:bg-blue-50"
+          >
+            {expanded ? (
+              <><ChevronUp size={12} /> Show less</>
+            ) : (
+              <><ChevronDown size={12} /> Show {filtered.length - initialMaxRows} more bookings</>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -16,16 +16,17 @@ import { ShipmentDrawer } from "./shipment-drawer"
 // Legacy view type — kept for compatibility with internal navigation handlers
 type SidebarView = string
 import { motion } from "framer-motion"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import {
   Brain, ArrowRight, AlertTriangle, CheckCircle2, Clock, Activity,
   ExternalLink, TrendingUp, Lightbulb, Flame, MapPin, Zap, Ship,
-  Sparkles, FileCheck, ClipboardList, TrendingDown,
+  Sparkles, FileCheck, ClipboardList, TrendingDown, Info,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { type SentEmailItem } from "./email-sent-page"
 import { CompletionModal } from "./demo-modal"
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell,
   PieChart, Pie,
 } from "recharts"
 
@@ -256,7 +257,7 @@ export function Dashboard({ searchQuery, onViewChange, onOpenWeather, onSendNoti
                       textAnchor="end"
                     />
                     <YAxis tick={{ fontSize: 9, fill: "#9CA3AF" }} tickLine={false} axisLine={false} allowDecimals={false} width={20} />
-                    <Tooltip
+                    <RechartsTooltip
                       cursor={{ fill: "#f3f4f6" }}
                       formatter={(v: number, _: string, props: { payload?: { stage?: string } }) => [`${v} bookings`, props?.payload?.stage ?? ""]}
                       contentStyle={{ fontSize: 11, padding: "4px 10px" }}
@@ -275,14 +276,19 @@ export function Dashboard({ searchQuery, onViewChange, onOpenWeather, onSendNoti
           {/* Exception Distribution Donut */}
           <motion.div
             variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } }}
-            className="bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:border-blue-300 transition-colors flex flex-col"
+            className="bg-white rounded-lg border border-gray-200 overflow-hidden cursor-pointer hover:border-blue-300 transition-colors flex flex-col"
             onClick={() => onViewChange?.("exceptions")}
             title="Click to open Exception Workbench"
           >
-            <h3 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1 whitespace-nowrap">Exception Distribution</h3>
-            {/* Donut — centered, compact */}
-            <div className="w-full" style={{ height: 90 }}>
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border-b border-red-100">
+              <AlertTriangle size={13} className="text-red-600 shrink-0" />
+              <span className="text-[10px] font-semibold text-red-700 uppercase tracking-wider whitespace-nowrap">Exception Distribution</span>
+              <span className="ml-auto rounded-full bg-red-100 border border-red-200 px-1.5 py-0.5 text-[9px] font-bold text-red-700">{exceptionData.reduce((sum, e) => sum + e.count, 0)}</span>
+            </div>
+            <div className="flex items-center gap-3 p-3 flex-1">
+              {/* Donut */}
+              <div className="w-[100px] shrink-0" style={{ height: 100 }}>
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={exceptionData.filter((e) => e.count > 0)}
@@ -290,29 +296,31 @@ export function Dashboard({ searchQuery, onViewChange, onOpenWeather, onSendNoti
                       nameKey="type"
                       cx="50%"
                       cy="50%"
-                      innerRadius={24}
-                      outerRadius={40}
+                      innerRadius={28}
+                      outerRadius={44}
                       paddingAngle={3}
+                      strokeWidth={0}
                     >
                       {exceptionData.filter((e) => e.count > 0).map((e, i) => (
                         <Cell key={i} fill={e.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(v: number, n: string) => [v, n]} contentStyle={{ fontSize: 10 }} />
+                    <RechartsTooltip formatter={(v: number, n: string) => [v, n]} contentStyle={{ fontSize: 10, borderRadius: 8 }} />
                   </PieChart>
                 </ResponsiveContainer>
-            </div>
-            {/* Legend — stacked below donut */}
-            <div className="space-y-1 mt-1">
-              {exceptionData.filter((e) => e.count > 0).map((e) => (
-                <div key={e.type} className="flex items-center justify-between text-[9px]">
-                  <div className="flex items-center gap-1 min-w-0">
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: e.color }} />
-                    <span className="text-gray-500 truncate">{e.type}</span>
+              </div>
+              {/* Legend */}
+              <div className="flex-1 space-y-1.5">
+                {exceptionData.filter((e) => e.count > 0).map((e) => (
+                  <div key={e.type} className="flex items-center justify-between text-[10px]">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: e.color }} />
+                      <span className="text-slate-600 truncate">{e.type}</span>
+                    </div>
+                    <span className="font-bold text-slate-800 shrink-0 ml-2 tabular-nums">{e.count}</span>
                   </div>
-                  <span className="font-semibold text-gray-700 shrink-0 ml-1">{e.count}</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </motion.div>
 
@@ -326,7 +334,7 @@ export function Dashboard({ searchQuery, onViewChange, onOpenWeather, onSendNoti
               <BarChart data={rateVariance} margin={{ left: 0, right: 8 }}>
                 <XAxis dataKey="carrier" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} />
-                <Tooltip
+                <RechartsTooltip
                   cursor={{ fill: "#f3f4f6" }}
                   formatter={(v: number, n: string) => [`$${v.toLocaleString()}`, n === "contract" ? "Contract" : "Spot"]}
                   contentStyle={{ fontSize: 11 }}
@@ -522,22 +530,76 @@ function AiHeroCard({ analysisThinking, bookingsCount, exceptionsCount, zeroTouc
 
 // ── KPI Row (5-col, PO Orchestrator pattern) ────────────────────────────────
 
+// KPI tooltip definitions
+const kpiTooltips = {
+  activeBookings: {
+    title: "Active Bookings",
+    description: "Shipment bookings currently in the agent pipeline across all workflow stages.",
+    baseline: "Daily avg: 12 bookings",
+  },
+  autoBooked: {
+    title: "Auto-Booked",
+    description: "Bookings completed end-to-end by AI agents without manual intervention.",
+    baseline: "Target: 800/month",
+  },
+  avgBookingTime: {
+    title: "Avg Booking Time",
+    description: "Average time from SAP ingestion to booking confirmed, measured across all completed bookings.",
+    baseline: "Manual baseline: 16 min",
+  },
+  zeroTouchRate: {
+    title: "Zero-Touch Rate",
+    description: "Percentage of bookings completed end-to-end without any human intervention — no exceptions, no holds.",
+    baseline: "Industry avg: ~35%",
+  },
+  exceptionRate: {
+    title: "Exception Rate",
+    description: "Percentage of bookings that triggered an exception — portal failure, rate mismatch, missing data, or carrier rejection.",
+    baseline: "Target: below 15%",
+  },
+}
+
+function KpiTooltip({ tip }: { tip: { title: string; description: string; baseline: string } }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button className="ml-1 inline-flex items-center text-slate-300 hover:text-slate-500 transition-colors">
+          <Info size={10} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        side="bottom"
+        className="max-w-[220px] bg-slate-900 text-white rounded-lg px-3 py-2.5 shadow-xl border-0"
+      >
+        <p className="text-[11px] font-semibold mb-1">{tip.title}</p>
+        <p className="text-[10px] text-slate-300 leading-relaxed">{tip.description}</p>
+        <div className="mt-1.5 pt-1.5 border-t border-slate-700">
+          <p className="text-[10px] text-slate-400">{tip.baseline}</p>
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 function KpiRow({ bookingsCount, exceptionsCount, zeroTouchRate }: {
   bookingsCount: number; exceptionsCount: number; zeroTouchRate: number
 }) {
-  const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } }
-  const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } }
+  const containerV = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } }
+  const itemV = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } }
 
   return (
-    <motion.div className="grid grid-cols-5 gap-2" variants={container} initial="hidden" animate="show">
-      <motion.div variants={item} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+    <motion.div className="grid grid-cols-5 gap-2" variants={containerV} initial="hidden" animate="show">
+      <motion.div variants={itemV} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Active Bookings</p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Active Bookings
+              <KpiTooltip tip={kpiTooltips.activeBookings} />
+            </p>
             <p className="mt-0.5 text-xl font-bold text-slate-900 tabular-nums">{bookingsCount}</p>
             <div className="mt-1 flex items-center gap-2 text-[10px]">
-              <span className="flex items-center gap-0.5 text-amber-600"><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />{Math.round(bookingsCount * 0.4)} in progress</span>
-              <span className="flex items-center gap-0.5 text-green-600"><span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />{Math.round(bookingsCount * 0.45)} confirmed</span>
+              <span className="flex items-center gap-0.5 text-amber-600"><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />{Math.round(bookingsCount * 0.4)} active</span>
+              <span className="flex items-center gap-0.5 text-green-600"><span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />{Math.round(bookingsCount * 0.45)} done</span>
             </div>
           </div>
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-100">
@@ -546,10 +608,13 @@ function KpiRow({ bookingsCount, exceptionsCount, zeroTouchRate }: {
         </div>
       </motion.div>
 
-      <motion.div variants={item} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+      <motion.div variants={itemV} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Auto-Booked</p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Auto-Booked
+              <KpiTooltip tip={kpiTooltips.autoBooked} />
+            </p>
             <p className="mt-0.5 text-xl font-bold text-slate-900 tabular-nums">{Math.round(bookingsCount * 0.65)}</p>
             <div className="mt-1 flex items-center gap-1">
               <TrendingUp size={12} className="text-green-600" />
@@ -562,10 +627,13 @@ function KpiRow({ bookingsCount, exceptionsCount, zeroTouchRate }: {
         </div>
       </motion.div>
 
-      <motion.div variants={item} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+      <motion.div variants={itemV} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Avg Booking Time</p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Avg Booking Time
+              <KpiTooltip tip={kpiTooltips.avgBookingTime} />
+            </p>
             <p className="mt-0.5 text-xl font-bold text-slate-900 tabular-nums">4.2m</p>
             <div className="mt-1 flex items-center gap-1">
               <TrendingDown size={12} className="text-green-600" />
@@ -578,10 +646,13 @@ function KpiRow({ bookingsCount, exceptionsCount, zeroTouchRate }: {
         </div>
       </motion.div>
 
-      <motion.div variants={item} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+      <motion.div variants={itemV} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Zero-Touch Rate</p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Zero-Touch Rate
+              <KpiTooltip tip={kpiTooltips.zeroTouchRate} />
+            </p>
             <p className="mt-0.5 text-xl font-bold text-slate-900 tabular-nums">{zeroTouchRate}%</p>
             <div className="mt-1 flex items-center gap-1">
               <TrendingUp size={12} className="text-green-600" />
@@ -594,10 +665,13 @@ function KpiRow({ bookingsCount, exceptionsCount, zeroTouchRate }: {
         </div>
       </motion.div>
 
-      <motion.div variants={item} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+      <motion.div variants={itemV} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Exception Rate</p>
+            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Exception Rate
+              <KpiTooltip tip={kpiTooltips.exceptionRate} />
+            </p>
             <p className="mt-0.5 text-xl font-bold text-slate-900 tabular-nums">{bookingsCount > 0 ? Math.round((exceptionsCount / bookingsCount) * 100) : 0}%</p>
             <div className="mt-1 flex items-center gap-1">
               <TrendingDown size={12} className="text-green-600" />

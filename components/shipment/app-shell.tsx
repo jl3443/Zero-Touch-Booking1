@@ -10,6 +10,8 @@ import { EmailSentPage, type SentEmailItem } from "./email-sent-page"
 import { AIChatPanel } from "./ai-chat-panel"
 import { BOOKING_REQUESTS, INBOX_EMAILS, DEMO_SHIPMENT, DEMO_SCENARIO_BOOKING_MAP } from "@/lib/mock-data"
 import { AutomationRulesPage } from "./automation-rules"
+import { PolicyPage } from "./policy-page"
+import { ApiPage } from "./api-page"
 import { type Persona } from "./login-page"
 
 export function AppShell({ persona }: { persona?: Persona }) {
@@ -195,6 +197,10 @@ export function AppShell({ persona }: { persona?: Persona }) {
         {activeTab === "analytics" && <AnalyticsPage etaUpdatedCount={etaApprovedCount} />}
 
         {activeTab === "automation-rules" && <AutomationRulesPage />}
+
+        {activeTab === "policy" && <PolicyPage />}
+
+        {activeTab === "api" && <ApiPage />}
 
         {activeTab === "email-inbox" && (
           <EmailInboxPage
