@@ -227,16 +227,6 @@ export function AppShell({ persona }: { persona?: Persona }) {
             onSendNotification={handleSendNotification}
           />
       )}
-
-      {/* Built by TCS MGF badge */}
-      <div className="fixed bottom-4 right-4 z-[9999] flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-slate-200 shadow-lg px-3 py-1.5">
-        <div className="h-5 w-5 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center">
-          <span className="text-[8px] font-bold text-white">TCS</span>
-        </div>
-        <span className="text-[11px] text-slate-600">
-          Built by <span className="font-semibold text-slate-800">TCS MGF</span>
-        </span>
-      </div>
     </div>
   )
 }
