@@ -144,7 +144,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         <div className="relative mt-12 border-t border-white/15 pt-6">
           <p className="text-blue-200/60 text-xs">Demo environment · All data is fictitious</p>
-          <p className="text-blue-200/40 text-[11px] mt-1">Booking Agent v1.0 · Built by TCS MGF</p>
+          <p className="text-blue-200/40 text-[11px] mt-1">Booking Agent v1.0 · Powered by AI</p>
         </div>
       </motion.div>
 
