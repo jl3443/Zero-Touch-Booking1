@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { DEMO_SCENARIOS, DEMO_STEP_DETAILS } from "@/lib/mock-data"
 import { type Persona } from "./login-page"
 
-export type ViewTab = "dashboard" | "analytics" | "email-inbox" | "email-sent" | "automation-rules" | "policy" | "api"
+export type ViewTab = "dashboard" | "analytics" | "email-inbox" | "email-sent" | "automation-rules" | "policy" | "api" | "carriers"
 
 interface TopBarProps {
   activeTab: ViewTab
@@ -314,6 +314,16 @@ export function TopBar({
           >
             <Code2 size={13} />
             API
+          </button>
+          <button
+            onClick={() => { onTabChange("carriers"); dashboard.setOpen(false); bookings.setOpen(false); email.setOpen(false) }}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
+              activeTab === "carriers" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+            )}
+          >
+            <Ship size={13} />
+            Carriers
           </button>
         </div>
 

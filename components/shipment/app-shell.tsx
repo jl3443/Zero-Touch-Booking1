@@ -12,6 +12,7 @@ import { BOOKING_REQUESTS, INBOX_EMAILS, DEMO_SHIPMENT, DEMO_SCENARIO_BOOKING_MA
 import { AutomationRulesPage } from "./automation-rules"
 import { PolicyPage } from "./policy-page"
 import { ApiPage } from "./api-page"
+import { CarrierScorecardPage } from "./carrier-scorecard-page"
 import { type Persona } from "./login-page"
 
 export function AppShell({ persona }: { persona?: Persona }) {
@@ -201,6 +202,8 @@ export function AppShell({ persona }: { persona?: Persona }) {
         {activeTab === "policy" && <PolicyPage />}
 
         {activeTab === "api" && <ApiPage />}
+
+        {activeTab === "carriers" && <CarrierScorecardPage />}
 
         {activeTab === "email-inbox" && (
           <EmailInboxPage
