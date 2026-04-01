@@ -533,14 +533,34 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
           </div>
         )}
 
-        {/* Empty state — no email selected */}
+        {/* Empty state — static AI spinner (matching reference) */}
         {!emailThinking && !selected && (
           <div className="flex-1 flex items-center justify-center bg-white">
-            <div className="text-center space-y-3">
-              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto">
-                <Mail size={24} className="text-gray-300" />
+            <div className="w-full max-w-md space-y-8 px-8">
+              {/* Icon */}
+              <div className="flex justify-center">
+                <div className="w-20 h-20 rounded-full bg-[#EEEEF8] flex items-center justify-center">
+                  <Sparkles size={32} className="text-[#5B5BD6]" />
+                </div>
               </div>
-              <p className="text-[14px] text-gray-400">Select an email to view</p>
+              {/* Title */}
+              <p className="text-center text-[16px] font-semibold text-gray-900">AI Agent Analyzing Email</p>
+              {/* Steps — all greyed out */}
+              <div className="space-y-4">
+                {ANALYSIS_PHASES.map((phase, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold shrink-0 bg-gray-100 text-gray-400">
+                      {i + 1}
+                    </div>
+                    <span className="text-[14px] text-gray-400">{phase}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Progress bar — empty */}
+              <div>
+                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden" />
+                <p className="text-[12px] text-gray-400 text-center mt-3">0% complete</p>
+              </div>
             </div>
           </div>
         )}
