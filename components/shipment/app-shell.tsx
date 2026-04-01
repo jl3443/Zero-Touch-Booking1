@@ -219,10 +219,11 @@ export function AppShell({ persona }: { persona?: Persona }) {
               setActiveTab("dashboard")
               setDemoShipmentVisible(true)
             }}
+            onSwitchToSent={() => setActiveTab("email-sent")}
           />
         )}
 
-        {activeTab === "email-sent" && <EmailSentPage dynamicEmails={sentEmails} autoSelectId={emailAutoSelectId ?? undefined} />}
+        {activeTab === "email-sent" && <EmailSentPage dynamicEmails={sentEmails} autoSelectId={emailAutoSelectId ?? undefined} onSwitchToInbox={() => setActiveTab("email-inbox")} />}
       </div>
 
       {/* AI Chat Panel */}

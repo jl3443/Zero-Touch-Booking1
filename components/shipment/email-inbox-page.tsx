@@ -27,9 +27,10 @@ interface EmailInboxPageProps {
   dynamicEmails?: Array<{ id: string; from: string; fromName: string; subject: string; body: string; timestamp: string; read: boolean; tag: string; tags: string[]; shipmentId: string; shipmentRef: string }>
   onReturnToFlow?: () => void
   onStartDemo?: (scenarioId: string) => void
+  onSwitchToSent?: () => void
 }
 
-export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [], onReturnToFlow, onStartDemo }: EmailInboxPageProps) {
+export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [], onReturnToFlow, onStartDemo, onSwitchToSent }: EmailInboxPageProps) {
   const dynamicAsInbox: InboxEmail[] = dynamicEmails.map((e) => ({
     id: e.id, from: e.from, fromName: e.fromName, subject: e.subject, body: e.body,
     timestamp: e.timestamp, read: e.read, tag: e.tag as EmailTag, tags: e.tags as EmailTag[],
@@ -179,7 +180,7 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
           <Mail size={14} /> Inbox
         </button>
         <button
-          onClick={() => setSidebarFolder("sent")}
+          onClick={() => { setSidebarFolder("sent"); onSwitchToSent?.() }}
           className={cn(
             "flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-[13px] font-medium transition-colors",
             sidebarFolder === "sent" ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50"
