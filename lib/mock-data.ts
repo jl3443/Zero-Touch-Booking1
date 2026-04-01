@@ -57,6 +57,13 @@ export interface CarrierOption {
   lanePerformance: number
   recommended: boolean
   reason?: string
+  // Contract-aware fields
+  contractId?: string
+  hasActiveContract?: boolean
+  volumeCommitted?: number      // carrier-level TEU
+  volumeUsed?: number           // carrier-level TEU
+  laneVolumeCommitted?: number  // lane-level TEU
+  laneVolumeUsed?: number       // lane-level TEU
 }
 
 export interface TimelineEvent {
@@ -175,54 +182,54 @@ function makeWorkflowSteps(completedUpTo: number, failedAt?: number): BookingWor
 // ── Carrier Options ──────────────────────────────────────────────────────
 
 const CARRIER_OPTIONS_SHA_LAX: CarrierOption[] = [
-  { carrier: "Maersk", rate: 2850, contractRate: 2800, transitDays: 14, capacity: "Available", sla: 92, lanePerformance: 94, recommended: true, reason: "Best combination of rate, SLA, and capacity on SHA→LAX lane" },
-  { carrier: "MSC", rate: 2720, contractRate: 2750, transitDays: 16, capacity: "Available", sla: 87, lanePerformance: 89, recommended: false, reason: "Lower rate but 2 extra transit days" },
-  { carrier: "CMA-CGM", rate: 3100, contractRate: 3000, transitDays: 13, capacity: "Limited", sla: 90, lanePerformance: 91, recommended: false, reason: "Fastest transit but premium rate" },
-  { carrier: "Hapag-Lloyd", rate: 2900, contractRate: 2850, transitDays: 15, capacity: "Available", sla: 88, lanePerformance: 86, recommended: false },
+  { carrier: "Maersk", rate: 2850, contractRate: 2800, transitDays: 14, capacity: "Available", sla: 92, lanePerformance: 94, recommended: true, reason: "Contracted carrier — best SLA and capacity on SHA→LAX lane", contractId: "CTR-2024-001", hasActiveContract: true, volumeCommitted: 12000, volumeUsed: 8160, laneVolumeCommitted: 4000, laneVolumeUsed: 2720 },
+  { carrier: "MSC", rate: 2720, contractRate: 2750, transitDays: 16, capacity: "Available", sla: 87, lanePerformance: 89, recommended: false, reason: "Lower rate but 2 extra transit days", contractId: "CTR-2024-002", hasActiveContract: true, volumeCommitted: 8000, volumeUsed: 7280, laneVolumeCommitted: 4000, laneVolumeUsed: 3640 },
+  { carrier: "CMA-CGM", rate: 3100, contractRate: 3000, transitDays: 13, capacity: "Limited", sla: 90, lanePerformance: 91, recommended: false, reason: "Fastest transit but premium rate", contractId: "CTR-2024-004", hasActiveContract: true, volumeCommitted: 10000, volumeUsed: 4200, laneVolumeCommitted: 5000, laneVolumeUsed: 2100 },
+  { carrier: "Hapag-Lloyd", rate: 2900, contractRate: 2850, transitDays: 15, capacity: "Available", sla: 88, lanePerformance: 86, recommended: false, hasActiveContract: false },
 ]
 
 const CARRIER_OPTIONS_SZX_ORD: CarrierOption[] = [
-  { carrier: "MSC", rate: 3200, contractRate: 3150, transitDays: 18, capacity: "Available", sla: 89, lanePerformance: 91, recommended: true, reason: "Best value carrier for SZX→ORD with strong SLA compliance" },
-  { carrier: "Maersk", rate: 3350, contractRate: 3300, transitDays: 17, capacity: "Limited", sla: 93, lanePerformance: 95, recommended: false },
-  { carrier: "Hapag-Lloyd", rate: 3180, contractRate: 3200, transitDays: 19, capacity: "Available", sla: 86, lanePerformance: 88, recommended: false },
-  { carrier: "CMA-CGM", rate: 3500, contractRate: 3400, transitDays: 16, capacity: "Available", sla: 91, lanePerformance: 90, recommended: false },
+  { carrier: "MSC", rate: 3200, contractRate: 3150, transitDays: 18, capacity: "Available", sla: 89, lanePerformance: 91, recommended: true, reason: "Contracted carrier — best value for SZX→ORD with strong SLA", contractId: "CTR-2024-002", hasActiveContract: true, volumeCommitted: 8000, volumeUsed: 7280, laneVolumeCommitted: 4000, laneVolumeUsed: 3640 },
+  { carrier: "Maersk", rate: 3350, contractRate: 3300, transitDays: 17, capacity: "Limited", sla: 93, lanePerformance: 95, recommended: false, contractId: "CTR-2024-001", hasActiveContract: true, volumeCommitted: 12000, volumeUsed: 8160, laneVolumeCommitted: 3000, laneVolumeUsed: 2040 },
+  { carrier: "Hapag-Lloyd", rate: 3180, contractRate: 3200, transitDays: 19, capacity: "Available", sla: 86, lanePerformance: 88, recommended: false, hasActiveContract: false },
+  { carrier: "CMA-CGM", rate: 3500, contractRate: 3400, transitDays: 16, capacity: "Available", sla: 91, lanePerformance: 90, recommended: false, contractId: "CTR-2024-004", hasActiveContract: true, volumeCommitted: 10000, volumeUsed: 4200 },
 ]
 
 const CARRIER_OPTIONS_BOM_RTM: CarrierOption[] = [
-  { carrier: "Maersk", rate: 2200, contractRate: 2150, transitDays: 21, capacity: "Full", sla: 90, lanePerformance: 92, recommended: false, reason: "No capacity on current sailing" },
-  { carrier: "MSC", rate: 2100, contractRate: 2100, transitDays: 23, capacity: "Full", sla: 85, lanePerformance: 87, recommended: false, reason: "Fully booked through end of month" },
-  { carrier: "Hapag-Lloyd", rate: 2350, contractRate: 2300, transitDays: 20, capacity: "Full", sla: 88, lanePerformance: 89, recommended: false, reason: "No available slots" },
-  { carrier: "CMA-CGM", rate: 2450, contractRate: 2400, transitDays: 22, capacity: "Full", sla: 87, lanePerformance: 85, recommended: false, reason: "All carriers at full capacity on this lane" },
+  { carrier: "Maersk", rate: 2200, contractRate: 2150, transitDays: 21, capacity: "Full", sla: 90, lanePerformance: 92, recommended: false, reason: "No capacity on current sailing", contractId: "CTR-2024-001", hasActiveContract: true, volumeCommitted: 12000, volumeUsed: 8160 },
+  { carrier: "MSC", rate: 2100, contractRate: 2100, transitDays: 23, capacity: "Full", sla: 85, lanePerformance: 87, recommended: false, reason: "Fully booked through end of month", contractId: "CTR-2024-002", hasActiveContract: true, volumeCommitted: 8000, volumeUsed: 7280 },
+  { carrier: "Hapag-Lloyd", rate: 2350, contractRate: 2300, transitDays: 20, capacity: "Full", sla: 88, lanePerformance: 89, recommended: false, reason: "No available slots", contractId: "CTR-2023-003", hasActiveContract: true, volumeCommitted: 6000, volumeUsed: 5220, laneVolumeCommitted: 2500, laneVolumeUsed: 2175 },
+  { carrier: "CMA-CGM", rate: 2450, contractRate: 2400, transitDays: 22, capacity: "Full", sla: 87, lanePerformance: 85, recommended: false, reason: "All carriers at full capacity on this lane", hasActiveContract: false },
 ]
 
 const CARRIER_OPTIONS_YYZ_DTW: CarrierOption[] = [
-  { carrier: "DHL Freight", rate: 1800, contractRate: 1750, transitDays: 2, capacity: "Available", sla: 94, lanePerformance: 96, recommended: false },
-  { carrier: "Hapag-Lloyd", rate: 1650, contractRate: 1700, transitDays: 2, capacity: "Available", sla: 91, lanePerformance: 93, recommended: true, reason: "AI selected: below-contract rate with strong on-time performance" },
-  { carrier: "XPO Logistics", rate: 1900, contractRate: 1850, transitDays: 1, capacity: "Available", sla: 89, lanePerformance: 90, recommended: false },
+  { carrier: "DHL Freight", rate: 1800, contractRate: 1750, transitDays: 2, capacity: "Available", sla: 94, lanePerformance: 96, recommended: false, hasActiveContract: false },
+  { carrier: "Hapag-Lloyd", rate: 1650, contractRate: 1700, transitDays: 2, capacity: "Available", sla: 91, lanePerformance: 93, recommended: true, reason: "AI selected: below-contract rate with strong on-time performance", hasActiveContract: false },
+  { carrier: "XPO Logistics", rate: 1900, contractRate: 1850, transitDays: 1, capacity: "Available", sla: 89, lanePerformance: 90, recommended: false, hasActiveContract: false },
 ]
 
 const CARRIER_OPTIONS_MAA_IAH: CarrierOption[] = [
-  { carrier: "Maersk", rate: 2600, contractRate: 2550, transitDays: 25, capacity: "Available", sla: 90, lanePerformance: 88, recommended: true, reason: "Optimal rate-to-transit ratio for MAA→IAH" },
-  { carrier: "MSC", rate: 2500, contractRate: 2500, transitDays: 27, capacity: "Available", sla: 86, lanePerformance: 84, recommended: false },
-  { carrier: "CMA-CGM", rate: 2750, contractRate: 2700, transitDays: 23, capacity: "Limited", sla: 89, lanePerformance: 91, recommended: false },
+  { carrier: "Maersk", rate: 2600, contractRate: 2550, transitDays: 25, capacity: "Available", sla: 90, lanePerformance: 88, recommended: true, reason: "Contracted carrier — optimal rate-to-transit ratio for MAA→IAH", contractId: "CTR-2024-001", hasActiveContract: true, volumeCommitted: 12000, volumeUsed: 8160 },
+  { carrier: "MSC", rate: 2500, contractRate: 2500, transitDays: 27, capacity: "Available", sla: 86, lanePerformance: 84, recommended: false, contractId: "CTR-2024-002", hasActiveContract: true, volumeCommitted: 8000, volumeUsed: 7280 },
+  { carrier: "CMA-CGM", rate: 2750, contractRate: 2700, transitDays: 23, capacity: "Limited", sla: 89, lanePerformance: 91, recommended: false, hasActiveContract: false },
 ]
 
 const CARRIER_OPTIONS_MEM_ORD: CarrierOption[] = [
-  { carrier: "FedEx Freight", rate: 850, contractRate: 800, transitDays: 1, capacity: "Available", sla: 96, lanePerformance: 97, recommended: true, reason: "Best domestic rate with same-day capacity" },
-  { carrier: "XPO Logistics", rate: 920, contractRate: 900, transitDays: 1, capacity: "Available", sla: 93, lanePerformance: 94, recommended: false },
-  { carrier: "J.B. Hunt", rate: 880, contractRate: 850, transitDays: 1, capacity: "Limited", sla: 91, lanePerformance: 92, recommended: false },
+  { carrier: "FedEx Freight", rate: 850, contractRate: 800, transitDays: 1, capacity: "Available", sla: 96, lanePerformance: 97, recommended: true, reason: "Contracted carrier — best domestic rate with same-day capacity", contractId: "CTR-2024-005", hasActiveContract: true, volumeCommitted: 5000, volumeUsed: 3300, laneVolumeCommitted: 2500, laneVolumeUsed: 1650 },
+  { carrier: "XPO Logistics", rate: 920, contractRate: 900, transitDays: 1, capacity: "Available", sla: 93, lanePerformance: 94, recommended: false, hasActiveContract: false },
+  { carrier: "J.B. Hunt", rate: 880, contractRate: 850, transitDays: 1, capacity: "Limited", sla: 91, lanePerformance: 92, recommended: false, hasActiveContract: false },
 ]
 
 const CARRIER_OPTIONS_BOM_LAX: CarrierOption[] = [
-  { carrier: "CMA-CGM", rate: 3800, contractRate: 3200, transitDays: 22, capacity: "Available", sla: 88, lanePerformance: 86, recommended: false, reason: "Spot rate 19% above contract — requires planner approval" },
-  { carrier: "Maersk", rate: 3500, contractRate: 3400, transitDays: 24, capacity: "Limited", sla: 91, lanePerformance: 90, recommended: true, reason: "Closer to contract rate but limited capacity" },
-  { carrier: "MSC", rate: 3600, contractRate: 3300, transitDays: 23, capacity: "Available", sla: 87, lanePerformance: 85, recommended: false },
+  { carrier: "CMA-CGM", rate: 3800, contractRate: 3200, transitDays: 22, capacity: "Available", sla: 88, lanePerformance: 86, recommended: false, reason: "Spot rate 19% above contract — requires planner approval", contractId: "CTR-2024-004", hasActiveContract: true, volumeCommitted: 10000, volumeUsed: 4200 },
+  { carrier: "Maersk", rate: 3500, contractRate: 3400, transitDays: 24, capacity: "Limited", sla: 91, lanePerformance: 90, recommended: true, reason: "Contracted carrier — closer to contract rate", contractId: "CTR-2024-001", hasActiveContract: true, volumeCommitted: 12000, volumeUsed: 8160 },
+  { carrier: "MSC", rate: 3600, contractRate: 3300, transitDays: 23, capacity: "Available", sla: 87, lanePerformance: 85, recommended: false, contractId: "CTR-2024-002", hasActiveContract: true, volumeCommitted: 8000, volumeUsed: 7280 },
 ]
 
 const CARRIER_OPTIONS_HKG_RTM: CarrierOption[] = [
-  { carrier: "Hapag-Lloyd", rate: 2950, contractRate: 2900, transitDays: 20, capacity: "Available", sla: 91, lanePerformance: 93, recommended: true, reason: "Strong SLA and within contract rate tolerance" },
-  { carrier: "Maersk", rate: 3050, contractRate: 3000, transitDays: 19, capacity: "Available", sla: 93, lanePerformance: 95, recommended: false },
-  { carrier: "MSC", rate: 2800, contractRate: 2850, transitDays: 22, capacity: "Available", sla: 86, lanePerformance: 88, recommended: false },
+  { carrier: "Hapag-Lloyd", rate: 2950, contractRate: 2900, transitDays: 20, capacity: "Available", sla: 91, lanePerformance: 93, recommended: true, reason: "Contracted carrier — strong SLA within contract tolerance", contractId: "CTR-2023-003", hasActiveContract: true, volumeCommitted: 6000, volumeUsed: 5220, laneVolumeCommitted: 3500, laneVolumeUsed: 3045 },
+  { carrier: "Maersk", rate: 3050, contractRate: 3000, transitDays: 19, capacity: "Available", sla: 93, lanePerformance: 95, recommended: false, contractId: "CTR-2024-001", hasActiveContract: true, volumeCommitted: 12000, volumeUsed: 8160, laneVolumeCommitted: 5000, laneVolumeUsed: 3400 },
+  { carrier: "MSC", rate: 2800, contractRate: 2850, transitDays: 22, capacity: "Available", sla: 86, lanePerformance: 88, recommended: false, hasActiveContract: false },
 ]
 
 // ── 8 Booking Requests ───────────────────────────────────────────────────

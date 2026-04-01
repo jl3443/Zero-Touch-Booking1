@@ -643,6 +643,9 @@ function LiveBookingFlow({
   const [showReasoning, setShowReasoning] = useState(true)
   const [carrierOverride, setCarrierOverride] = useState(false)
   const [selectedCarrier, setSelectedCarrier] = useState<string | null>(null)
+  const [approvalPending, setApprovalPending] = useState(false)
+  const [approvalGranted, setApprovalGranted] = useState(false)
+  const [approvalCarrier, setApprovalCarrier] = useState<string | null>(null)
   const [elapsedMs, setElapsedMs] = useState(0)
   // When remounting mid-demo (e.g. user navigated away and back), restore completed steps and current modal
   const [completedSteps, setCompletedSteps] = useState<number[]>(() => {
@@ -837,10 +840,38 @@ function LiveBookingFlow({
 
   // Handle carrier selection confirm (step 2)
   const handleCarrierConfirm = () => {
+    // Check if selected carrier deviates from contract (triggers approval gate)
+    const chosen = shipment.carrierOptions.find(
+      (c) => selectedCarrier ? c.carrier === selectedCarrier : c.recommended
+    )
+    const contractCarrier = shipment.carrierOptions.find((c) => c.hasActiveContract && c.recommended)
+    // If user chose a non-contract carrier OR a cheaper non-recommended carrier, require approval
+    if (chosen && contractCarrier && chosen.carrier !== contractCarrier.carrier && !chosen.hasActiveContract && !approvalGranted) {
+      setApprovalCarrier(chosen.carrier)
+      setApprovalPending(true)
+      // Simulate manager approval after 3.5s
+      setTimeout(() => { setApprovalPending(false); setApprovalGranted(true) }, 3500)
+      return
+    }
     setShowStepModal(null)
     setStepPhase("complete")
     setCompletedSteps((p) => [...p, 2])
     setCarrierOverride(false)
+    setApprovalPending(false)
+    setApprovalGranted(false)
+    setApprovalCarrier(null)
+    setTimeout(() => onStepAdvance?.(3), 400)
+  }
+
+  // Proceed after manager approval
+  const handleApprovalProceed = () => {
+    setShowStepModal(null)
+    setStepPhase("complete")
+    setCompletedSteps((p) => [...p, 2])
+    setCarrierOverride(false)
+    setApprovalPending(false)
+    setApprovalGranted(false)
+    setApprovalCarrier(null)
     setTimeout(() => onStepAdvance?.(3), 400)
   }
 
@@ -1128,10 +1159,81 @@ function LiveBookingFlow({
           </div>
         }
       >
+        {/* Contract Compliance Check Banner */}
+        {(() => {
+          const contractCarrier = shipment.carrierOptions.find((c) => c.hasActiveContract && c.recommended)
+          if (!contractCarrier) return null
+          const util = contractCarrier.volumeUsed && contractCarrier.volumeCommitted
+            ? Math.round((contractCarrier.volumeUsed / contractCarrier.volumeCommitted) * 100)
+            : null
+          return (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <div className="flex items-center gap-2 mb-1">
+                <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
+                <span className="text-[12px] font-bold text-emerald-800">Contract Compliance Check — CCR-01</span>
+              </div>
+              <p className="text-[11px] text-emerald-700 leading-relaxed">
+                Active contract with <span className="font-bold">{contractCarrier.carrier}</span> on this lane
+                ({contractCarrier.contractId}). AI recommends contracted carrier.
+                {util !== null && <span className="ml-1">YTD utilization: <span className="font-bold">{util}%</span></span>}
+              </p>
+            </div>
+          )
+        })()}
+
+        {/* Manager Approval Gate Overlay */}
+        {(approvalPending || approvalGranted) && (
+          <div className="mb-4 rounded-xl border overflow-hidden animate-in fade-in duration-300"
+            style={{ borderColor: approvalGranted ? "#86efac" : "#fbbf24" }}
+          >
+            <div className={cn("px-4 py-3", approvalGranted ? "bg-emerald-50" : "bg-amber-50")}>
+              <div className="flex items-center gap-2 mb-2">
+                {approvalGranted ? (
+                  <CheckCircle size={14} className="text-emerald-600" />
+                ) : (
+                  <AlertOctagon size={14} className="text-amber-600 animate-pulse" />
+                )}
+                <span className={cn("text-[12px] font-bold", approvalGranted ? "text-emerald-800" : "text-amber-800")}>
+                  {approvalGranted ? "Manager Approval Granted" : "Pending Manager Approval"}
+                </span>
+              </div>
+              {approvalPending && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] text-amber-700">
+                    Selecting <span className="font-bold">{approvalCarrier}</span> (non-contracted) deviates from volume commitment.
+                  </p>
+                  <p className="text-[11px] text-amber-600">
+                    Approval request sent to <span className="font-semibold">Sarah Kim, Supply Chain Manager</span>
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <div className="w-3 h-3 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+                    <span className="text-[10px] text-amber-500">Awaiting response...</span>
+                  </div>
+                </div>
+              )}
+              {approvalGranted && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] text-emerald-700">
+                    <span className="font-semibold">Sarah Kim</span> approved deviation from contract. Reason: cost savings opportunity.
+                  </p>
+                  <button
+                    onClick={handleApprovalProceed}
+                    className="mt-1 px-4 py-1.5 bg-emerald-600 text-white text-[11px] font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
+                  >
+                    Proceed with {approvalCarrier} →
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-4 items-stretch">
           {shipment.carrierOptions.map((c) => {
             const isSelected = (c.recommended && !carrierOverride && !selectedCarrier) || selectedCarrier === c.carrier
             const rateDiff = c.contractRate ? ((c.rate - c.contractRate) / c.contractRate * 100).toFixed(1) : null
+            const carrierUtil = c.volumeUsed && c.volumeCommitted ? Math.round((c.volumeUsed / c.volumeCommitted) * 100) : null
+            const laneUtil = c.laneVolumeUsed && c.laneVolumeCommitted ? Math.round((c.laneVolumeUsed / c.laneVolumeCommitted) * 100) : null
             return (
               <div
                 key={c.carrier}
@@ -1147,11 +1249,22 @@ function LiveBookingFlow({
                 <div className={cn("px-5 py-4 flex items-center justify-between border-b", isSelected ? "bg-blue-50/50 border-blue-100" : "bg-gray-50/50 border-gray-100")}>
                   <div className="flex items-center gap-3">
                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-bold border", isSelected ? "bg-blue-100 text-blue-700 border-blue-200" : "bg-gray-100 text-gray-600 border-gray-200")}>{c.carrier.slice(0, 3).toUpperCase()}</div>
-                    <span className="text-[15px] font-bold text-gray-900">{c.carrier}</span>
+                    <div>
+                      <span className="text-[15px] font-bold text-gray-900">{c.carrier}</span>
+                      {c.hasActiveContract && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <ShieldCheck size={10} className="text-emerald-500" />
+                          <span className="text-[9px] font-semibold text-emerald-600">Contracted</span>
+                          {c.contractId && <span className="text-[9px] text-gray-400 ml-0.5">({c.contractId})</span>}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {isSelected && (
-                    <span className="text-[9px] px-3 py-1 rounded-full bg-blue-600 text-white font-bold uppercase tracking-wider">AI Pick</span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {isSelected && (
+                      <span className="text-[9px] px-3 py-1 rounded-full bg-blue-600 text-white font-bold uppercase tracking-wider">AI Pick</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Metrics */}
@@ -1200,6 +1313,43 @@ function LiveBookingFlow({
                     <span className="text-[11px] text-gray-400 font-medium">Contract Rate</span>
                     <span className="text-[13px] font-semibold text-gray-600">${c.contractRate.toLocaleString()}</span>
                   </div>
+
+                  {/* Volume Commitment Progress */}
+                  {c.hasActiveContract && carrierUtil !== null && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-gray-400 font-medium">Volume Commitment</span>
+                        <span className="text-[10px] font-semibold text-gray-600">{carrierUtil}%</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={cn("h-full rounded-full transition-all",
+                            carrierUtil >= 90 ? "bg-red-400" : carrierUtil >= 70 ? "bg-amber-400" : "bg-emerald-400"
+                          )}
+                          style={{ width: `${Math.min(100, carrierUtil)}%` }}
+                        />
+                      </div>
+                      <div className="text-[9px] text-gray-400">
+                        {c.volumeUsed?.toLocaleString()} / {c.volumeCommitted?.toLocaleString()} TEU (carrier total)
+                      </div>
+                      {laneUtil !== null && (
+                        <div className="mt-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] text-gray-400">Lane: {laneUtil}%</span>
+                            <span className="text-[9px] text-gray-400">{c.laneVolumeUsed?.toLocaleString()} / {c.laneVolumeCommitted?.toLocaleString()} TEU</span>
+                          </div>
+                          <div className="h-1 bg-gray-100 rounded-full overflow-hidden mt-0.5">
+                            <div
+                              className={cn("h-full rounded-full",
+                                laneUtil >= 90 ? "bg-red-300" : laneUtil >= 70 ? "bg-amber-300" : "bg-emerald-300"
+                              )}
+                              style={{ width: `${Math.min(100, laneUtil)}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Reason footer */}
@@ -1492,10 +1642,15 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
     }, 1500)
   }
 
-  // ─── Scenario 2 & 5: No Capacity / Carrier Rejection → carrier select ──
+  // ─── Scenario 2 & 5: No Capacity / Carrier Rejection → contract check → carrier select ──
+  const [contractCheckPhase, setContractCheckPhase] = useState(0) // 0=idle, 1=checking contracts, 2=no contracted available, 3=done
   const handleResolveWithCarrierSelect = () => {
     setPhase("resolving")
-    setTimeout(() => setPhase("carrier-select"), 1200)
+    setContractCheckPhase(1)
+    // Phase 1: Check contracted carriers (1.2s)
+    setTimeout(() => setContractCheckPhase(2), 1200)
+    // Phase 2: Expand to spot market (2.4s)
+    setTimeout(() => { setContractCheckPhase(3); setPhase("carrier-select") }, 2400)
   }
 
   const handleConfirmCarrier = () => {
@@ -1641,6 +1796,30 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
 
   const carrierSelectContent = (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+      {/* Contract-first check banner */}
+      <div className="mb-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <ShieldCheck size={14} className="text-blue-600" />
+          <span className="text-[12px] font-bold text-blue-800">Contract-First Carrier Check</span>
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            {contractCheckPhase >= 2 ? <CheckCircle size={12} className="text-emerald-500" /> : <Loader2 size={12} className="text-blue-500 animate-spin" />}
+            <span className={cn("text-[11px]", contractCheckPhase >= 2 ? "text-emerald-700" : "text-blue-700")}>
+              {contractCheckPhase >= 2 ? "Checked 3 contracted carriers — all at full capacity on this lane" : "Checking contracted carriers for available capacity..."}
+            </span>
+          </div>
+          {contractCheckPhase >= 2 && (
+            <div className="flex items-center gap-2">
+              {contractCheckPhase >= 3 ? <CheckCircle size={12} className="text-emerald-500" /> : <Loader2 size={12} className="text-blue-500 animate-spin" />}
+              <span className={cn("text-[11px]", contractCheckPhase >= 3 ? "text-emerald-700" : "text-blue-700")}>
+                {contractCheckPhase >= 3 ? "Expanded to spot market — 3 alternatives found" : "Expanding search to spot market..."}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
         {/* Section header */}
         <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
