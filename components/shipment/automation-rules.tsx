@@ -9,6 +9,7 @@ import {
   BOOKING_REQUESTS,
   HARD_CONSTRAINTS,
   AI_POLICY_RECOMMENDATIONS,
+  CONTRACT_COMPLIANCE_RULES,
 } from "@/lib/mock-data"
 import { SeverityBadge, ModeIcon } from "./shared"
 import {
@@ -437,7 +438,54 @@ export function AutomationRulesPage() {
               </div>
             </div>
 
-            {/* ── Section 5: AI Policy Recommendations ─────────────────────── */}
+            {/* ── Section 5: Contract Compliance Rules ───────────────────── */}
+            <div className="bg-white rounded-xl border border-gray-200">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                <Shield size={14} className="text-blue-600" />
+                <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Contract Compliance</span>
+                <span className="ml-auto text-[10px] text-gray-400">{CONTRACT_COMPLIANCE_RULES.filter(r => r.enabled).length} of {CONTRACT_COMPLIANCE_RULES.length} active</span>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {CONTRACT_COMPLIANCE_RULES.map((rule) => (
+                  <div key={rule.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-lg shrink-0",
+                      rule.category === "selection" ? "bg-blue-100" : rule.category === "volume" ? "bg-amber-100" : rule.category === "expiry" ? "bg-red-100" : "bg-purple-100"
+                    )}>
+                      {rule.category === "selection" ? <Scale size={13} className="text-blue-600" /> :
+                       rule.category === "volume" ? <Package size={13} className="text-amber-600" /> :
+                       rule.category === "expiry" ? <Clock size={13} className="text-red-600" /> :
+                       <Ban size={13} className="text-purple-600" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-gray-800">{rule.label}</span>
+                        <span className="text-[9px] font-mono text-gray-400">{rule.id}</span>
+                      </div>
+                      <p className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">{rule.description}</p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {rule.triggerCount30d > 0 && (
+                        <span className="text-[9px] text-gray-400">{rule.triggerCount30d} triggers/30d</span>
+                      )}
+                      <button
+                        className={cn(
+                          "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                          rule.enabled ? "bg-blue-600" : "bg-gray-300"
+                        )}
+                      >
+                        <span className={cn(
+                          "inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform shadow-sm",
+                          rule.enabled ? "translate-x-[18px]" : "translate-x-[3px]"
+                        )} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Section 6: AI Policy Recommendations ─────────────────────── */}
             <div className="bg-white rounded-xl border border-gray-200">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
                 <Sparkles size={14} className="text-violet-600" />

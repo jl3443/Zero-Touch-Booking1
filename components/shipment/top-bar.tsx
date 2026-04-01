@@ -2,12 +2,12 @@
 
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Sparkles, UserCircle, ChevronDown, Mail, Inbox, Send, BarChart2, Ship, Square, ArrowRight, Settings2, Shield, Code2 } from "lucide-react"
+import { Sparkles, UserCircle, ChevronDown, Mail, Inbox, Send, BarChart2, Ship, Square, ArrowRight, Settings2, Shield, Code2, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DEMO_SCENARIOS, DEMO_STEP_DETAILS } from "@/lib/mock-data"
 import { type Persona } from "./login-page"
 
-export type ViewTab = "dashboard" | "analytics" | "email-inbox" | "email-sent" | "automation-rules" | "policy" | "api" | "carriers"
+export type ViewTab = "dashboard" | "analytics" | "email-inbox" | "email-sent" | "automation-rules" | "policy" | "api" | "carriers" | "contracts"
 
 interface TopBarProps {
   activeTab: ViewTab
@@ -324,6 +324,16 @@ export function TopBar({
           >
             <Ship size={13} />
             Carriers
+          </button>
+          <button
+            onClick={() => { onTabChange("contracts"); dashboard.setOpen(false); bookings.setOpen(false); email.setOpen(false) }}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
+              activeTab === "contracts" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+            )}
+          >
+            <FileText size={13} />
+            Contracts
           </button>
         </div>
 

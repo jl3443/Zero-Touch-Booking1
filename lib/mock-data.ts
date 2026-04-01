@@ -1071,6 +1071,118 @@ export interface CarrierScorecard {
   otpHistory: number[]
 }
 
+// ── Carrier Contracts ──────────────────────────────────────────────────────
+
+export type ContractStatus = "Active" | "Expiring Soon" | "Expired" | "Under Review"
+
+export interface ContractLane {
+  lane: string
+  mode: TransportMode
+  contractRate: number
+  currentSpotRate: number
+  volumeCommitted: number   // TEU
+  volumeUsed: number        // TEU
+}
+
+export interface CarrierContract {
+  id: string
+  carrier: string
+  status: ContractStatus
+  effectiveDate: string
+  expiryDate: string
+  totalVolumeCommitted: number  // TEU
+  totalVolumeUsed: number       // TEU
+  lanes: ContractLane[]
+  renegotiationFlag: boolean
+  aiRecommendation: string
+}
+
+export const CONTRACT_DATA: CarrierContract[] = [
+  {
+    id: "CTR-2024-001", carrier: "Maersk", status: "Active",
+    effectiveDate: "Jan 1, 2024", expiryDate: "Dec 31, 2025",
+    totalVolumeCommitted: 12000, totalVolumeUsed: 8160,
+    lanes: [
+      { lane: "SHA → LAX", mode: "Ocean", contractRate: 2800, currentSpotRate: 2850, volumeCommitted: 4000, volumeUsed: 2720 },
+      { lane: "SHA → ORD", mode: "Ocean", contractRate: 3200, currentSpotRate: 3100, volumeCommitted: 3000, volumeUsed: 2040 },
+      { lane: "HKG → RTM", mode: "Ocean", contractRate: 2600, currentSpotRate: 2750, volumeCommitted: 5000, volumeUsed: 3400 },
+    ],
+    renegotiationFlag: false,
+    aiRecommendation: "Contract performing well. SHA→ORD spot rate 3% below contract — consider spot booking for non-committed volume.",
+  },
+  {
+    id: "CTR-2024-002", carrier: "MSC", status: "Active",
+    effectiveDate: "Mar 1, 2024", expiryDate: "Feb 28, 2026",
+    totalVolumeCommitted: 8000, totalVolumeUsed: 7280,
+    lanes: [
+      { lane: "SZX → ORD", mode: "Ocean", contractRate: 3150, currentSpotRate: 3400, volumeCommitted: 4000, volumeUsed: 3640 },
+      { lane: "SHA → LAX", mode: "Ocean", contractRate: 2900, currentSpotRate: 2850, volumeCommitted: 4000, volumeUsed: 3640 },
+    ],
+    renegotiationFlag: true,
+    aiRecommendation: "Volume utilization at 91% — approaching cap. Recommend initiating volume extension negotiation before Q4 peak season.",
+  },
+  {
+    id: "CTR-2023-003", carrier: "Hapag-Lloyd", status: "Expiring Soon",
+    effectiveDate: "Jun 1, 2023", expiryDate: "May 15, 2025",
+    totalVolumeCommitted: 6000, totalVolumeUsed: 5220,
+    lanes: [
+      { lane: "HKG → RTM", mode: "Ocean", contractRate: 2500, currentSpotRate: 2750, volumeCommitted: 3500, volumeUsed: 3045 },
+      { lane: "BOM → RTM", mode: "Ocean", contractRate: 1800, currentSpotRate: 1950, volumeCommitted: 2500, volumeUsed: 2175 },
+    ],
+    renegotiationFlag: true,
+    aiRecommendation: "Contract expires in 45 days. Current spot rates 8-10% above contract. Strong position for renewal — recommend locking 2-year term at current rates.",
+  },
+  {
+    id: "CTR-2024-004", carrier: "CMA-CGM", status: "Under Review",
+    effectiveDate: "Apr 1, 2024", expiryDate: "Mar 31, 2026",
+    totalVolumeCommitted: 10000, totalVolumeUsed: 4200,
+    lanes: [
+      { lane: "SHA → LAX", mode: "Ocean", contractRate: 2750, currentSpotRate: 2850, volumeCommitted: 5000, volumeUsed: 2100 },
+      { lane: "MEM → ORD", mode: "Road", contractRate: 850, currentSpotRate: 920, volumeCommitted: 5000, volumeUsed: 2100 },
+    ],
+    renegotiationFlag: true,
+    aiRecommendation: "Volume utilization only 42%. Consider renegotiating minimum commitment downward or redistributing to higher-demand lanes.",
+  },
+  {
+    id: "CTR-2024-005", carrier: "FedEx Freight", status: "Active",
+    effectiveDate: "Jan 15, 2024", expiryDate: "Jan 14, 2026",
+    totalVolumeCommitted: 5000, totalVolumeUsed: 3300,
+    lanes: [
+      { lane: "MEM → ORD", mode: "Road", contractRate: 780, currentSpotRate: 850, volumeCommitted: 2500, volumeUsed: 1650 },
+      { lane: "YYZ → DTW", mode: "Road", contractRate: 620, currentSpotRate: 680, volumeCommitted: 2500, volumeUsed: 1650 },
+    ],
+    renegotiationFlag: false,
+    aiRecommendation: "Contract on track. Utilization at 66%. Rates competitive vs spot market. No action needed.",
+  },
+  {
+    id: "CTR-2023-006", carrier: "DHL Freight", status: "Expired",
+    effectiveDate: "Jan 1, 2023", expiryDate: "Dec 31, 2024",
+    totalVolumeCommitted: 4000, totalVolumeUsed: 3880,
+    lanes: [
+      { lane: "MEM → ORD", mode: "Road", contractRate: 800, currentSpotRate: 920, volumeCommitted: 2000, volumeUsed: 1940 },
+      { lane: "YYZ → DTW", mode: "Road", contractRate: 650, currentSpotRate: 680, volumeCommitted: 2000, volumeUsed: 1940 },
+    ],
+    renegotiationFlag: true,
+    aiRecommendation: "Contract expired. DHL rates were competitive — spot now 9-15% higher. Recommend renewal with 5% volume increase to lock in better terms.",
+  },
+]
+
+export interface ContractComplianceRule {
+  id: string
+  label: string
+  description: string
+  category: "selection" | "volume" | "expiry" | "compliance"
+  enabled: boolean
+  triggerCount30d: number
+}
+
+export const CONTRACT_COMPLIANCE_RULES: ContractComplianceRule[] = [
+  { id: "CCR-01", label: "Prefer contracted carrier", description: "Select contracted carrier for committed lanes unless spot rate is >15% lower than contract rate", category: "selection", enabled: true, triggerCount30d: 142 },
+  { id: "CCR-02", label: "Volume utilization alert", description: "Alert procurement team when carrier volume commitment utilization exceeds 90%", category: "volume", enabled: true, triggerCount30d: 3 },
+  { id: "CCR-03", label: "Contract expiry escalation", description: "Auto-escalate to procurement when carrier contract expires within 30 days", category: "expiry", enabled: true, triggerCount30d: 1 },
+  { id: "CCR-04", label: "Block non-contracted carriers", description: "Prevent booking with non-contracted carriers on lanes with active volume commitments", category: "compliance", enabled: false, triggerCount30d: 0 },
+]
+
 export const CARRIER_SCORECARDS: CarrierScorecard[] = [
   { carrier: "Maersk", modes: ["Ocean"], contractRate: "$2,800–3,400", spotRate: "$2,850–3,500", avgTransitDays: 17, capacity: "Available", slaScore: 92, bookingSuccessRate: 96, laneCoverage: 85, rating: "Preferred", trend: "stable", otpHistory: [94, 93, 95, 92, 94, 96] },
   { carrier: "MSC", modes: ["Ocean"], contractRate: "$2,100–3,150", spotRate: "$2,100–3,200", avgTransitDays: 20, capacity: "Available", slaScore: 87, bookingSuccessRate: 91, laneCoverage: 80, rating: "Standard", trend: "up", otpHistory: [85, 87, 86, 89, 91, 91] },
@@ -1736,12 +1848,12 @@ export const DEMO_STEP_DETAILS: DemoStepDetail[] = [
   },
   {
     duration: 3000,
-    thinkingLabel: "Evaluating carriers on SHA→LAX lane...",
-    completionLabel: "Maersk selected — best rate, SLA & capacity combination.",
-    subItems: ["Queried 4 carrier portals", "Rate comparison complete", "SLA scores evaluated", "Capacity confirmed available"],
-    aiReasoning: "Evaluated 4 carriers on SHA→LAX. Maersk ranked #1: rate $2,850 (within 2% of contract $2,800), 92% SLA, available capacity, 94% lane performance. MSC was $130 cheaper but 2 extra transit days exceed SLA target.",
-    aiConfidence: 94,
-    aiSources: ["Rate Engine", "Maersk Portal", "MSC Portal", "Hapag-Lloyd Portal"],
+    thinkingLabel: "Checking contract commitments on SHA→LAX...",
+    completionLabel: "Maersk selected — contract CTR-2024-001 active, 68% volume used.",
+    subItems: ["Contract CTR-2024-001 verified (Active)", "Volume: 2,720 / 4,000 TEU used (68%)", "Contract rate $2,800 vs spot $2,850 (+1.8%)", "CCR-01 applied: prefer contracted carrier"],
+    aiReasoning: "Checked contract commitments per rule CCR-01. Maersk contract CTR-2024-001 is active on SHA→LAX with 68% volume utilization (2,720 of 4,000 TEU). Contract rate $2,800 vs current spot $2,850 — contract saves 1.8%. SLA 92%, capacity available. Selected Maersk as contracted carrier with best compliance score.",
+    aiConfidence: 96,
+    aiSources: ["Contract Registry", "Rate Engine", "Maersk Portal", "MSC Portal"],
     processingTime: "2.4s",
   },
   {
@@ -1856,15 +1968,15 @@ export const DEMO_EXCEPTION_RESOLUTIONS: Record<string, DemoExceptionResolution>
   },
   "rate-mismatch": {
     scenarioId: "rate-mismatch",
-    title: "Rate Discrepancy Detected",
-    description: "Maersk quoted $3,340 for this booking — 19% above contract rate of $2,800.",
-    impact: "Estimated overspend: $540 per container, $1,080 total for 2×40' HC. Exceeds auto-approval threshold of 5%.",
-    aiRecommendation: "Flag for negotiation. Historical data shows Maersk typically adjusts within 24h when contract rate is referenced. Alternatively, MSC offers $2,720 on this lane.",
+    title: "Contract Rate Violation — CCR-01",
+    description: "Maersk quoted $3,340 — exceeds contract CTR-2024-001 ceiling of $2,800 by 19%. Contract compliance rule CCR-01 triggered.",
+    impact: "Estimated overspend: $540/container ($1,080 total for 2×40' HC). Exceeds auto-approval threshold. Contract volume at 68% — sufficient room for renegotiation leverage.",
+    aiRecommendation: "Flag for contract rate enforcement. Per CTR-2024-001, committed rate is $2,800. Historical data shows Maersk adjusts within 24h when contract is referenced. Alternatively, MSC (CTR-2024-002) offers $2,900 on SHA→LAX.",
     alternatives: [
-      { label: "Accept Quoted Rate", description: "Proceed with $3,340 (requires manager approval)" },
-      { label: "Book with MSC", description: "Switch to MSC at $2,720 — under contract rate" },
+      { label: "Enforce Contract Rate", description: "Reference CTR-2024-001 and request $2,800 rate" },
+      { label: "Book with MSC (Contract)", description: "Switch to MSC CTR-2024-002 at $2,900" },
     ],
-    resolveLabel: "Flag for Negotiation",
+    resolveLabel: "Enforce Contract Rate",
   },
   "carrier-rejection": {
     scenarioId: "carrier-rejection",

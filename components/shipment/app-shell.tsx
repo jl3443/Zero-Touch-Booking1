@@ -13,6 +13,7 @@ import { AutomationRulesPage } from "./automation-rules"
 import { PolicyPage } from "./policy-page"
 import { ApiPage } from "./api-page"
 import { CarrierScorecardPage } from "./carrier-scorecard-page"
+import { ContractsPage } from "./contracts-page"
 import { type Persona } from "./login-page"
 
 export function AppShell({ persona }: { persona?: Persona }) {
@@ -204,6 +205,8 @@ export function AppShell({ persona }: { persona?: Persona }) {
         {activeTab === "api" && <ApiPage />}
 
         {activeTab === "carriers" && <CarrierScorecardPage />}
+
+        {activeTab === "contracts" && <ContractsPage />}
 
         {activeTab === "email-inbox" && (
           <EmailInboxPage
