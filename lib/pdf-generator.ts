@@ -341,3 +341,159 @@ export function generateCustomsDeclaration(data: ShipmentData = DEFAULT_DATA): v
   const blob = doc.output("blob")
   window.open(URL.createObjectURL(blob), "_blank")
 }
+
+// ── SAP Shipment Order ──────────────────────────────────────────────────
+export function generateSAPShipmentOrder(orderRef: string): void {
+  const doc = new jsPDF()
+  addHeader(doc, `SAP Shipment Order — ${orderRef}`)
+  let y = 50
+  doc.setFillColor(245, 247, 250)
+  doc.rect(15, y, 180, 20, "F")
+  addField(doc, "SAP Order Reference", orderRef, 20, y + 6)
+  addField(doc, "Created", new Date().toLocaleDateString("en", { year: "numeric", month: "short", day: "numeric" }), 120, y + 6)
+  y += 28
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("Shipment Details", 15, y); y += 8
+  addField(doc, "Origin", "Shanghai, CN (CNSHA)", 15, y); addField(doc, "Destination", "Los Angeles, US (USLAX)", 100, y); y += 14
+  addField(doc, "Mode", "Ocean FCL", 15, y); addField(doc, "Container Type", "40' High Cube", 100, y); y += 14
+  addField(doc, "Target Ship Date", "Mar 15, 2025", 15, y); addField(doc, "Priority", "Standard", 100, y); y += 14
+  addField(doc, "Plant", "Suzhou Plant — Electronics Division", 15, y); addField(doc, "Incoterm", "FOB Shanghai", 100, y)
+  y += 20
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("Material Description", 15, y); y += 8
+  doc.setTextColor(50, 50, 50); doc.setFontSize(9); doc.setFont("helvetica", "normal")
+  doc.text("Electronic components and laptop parts (HS 8471.30)", 15, y)
+  doc.text("Gross Weight: 18,400 kg  |  240 cartons  |  Declared Value: $284,000", 15, y + 5)
+  y += 18
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("SAP Integration", 15, y); y += 8
+  addField(doc, "SAP TM Order", orderRef, 15, y); addField(doc, "SAP ERP Sales Order", `SO-${orderRef.slice(-5)}-001`, 100, y); y += 14
+  addField(doc, "OTM Shipment", `OTM-${orderRef.slice(-5)}`, 15, y); addField(doc, "Status", "Pending Booking", 100, y)
+  addFooter(doc, DEFAULT_DATA)
+  window.open(URL.createObjectURL(doc.output("blob")), "_blank")
+}
+
+// ── Booking Confirmation ────────────────────────────────────────────────
+export function generateBookingConfirmation(bookingRef: string): void {
+  const doc = new jsPDF()
+  addHeader(doc, `Booking Confirmation — ${bookingRef}`)
+  let y = 50
+  doc.setFillColor(245, 247, 250); doc.rect(15, y, 180, 20, "F")
+  addField(doc, "Booking Reference", bookingRef, 20, y + 6); addField(doc, "Status", "Confirmed", 120, y + 6)
+  y += 28
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("Voyage Details", 15, y); y += 8
+  addField(doc, "Carrier", "Maersk Line", 15, y); addField(doc, "Vessel / Voyage", "Maersk Elba / AE-1234", 100, y); y += 14
+  addField(doc, "Port of Loading", "Shanghai, CN (CNSHA)", 15, y); addField(doc, "Port of Discharge", "Los Angeles, US (USLAX)", 100, y); y += 14
+  addField(doc, "Sailing Date", "Mar 15, 2025", 15, y); addField(doc, "ETA", "Apr 02, 2025", 100, y); y += 14
+  addField(doc, "Container", "40' High Cube", 15, y); addField(doc, "Rate", "$2,850 (Contract)", 100, y)
+  y += 20
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("Terminal Instructions", 15, y); y += 8
+  doc.setTextColor(50, 50, 50); doc.setFontSize(9); doc.setFont("helvetica", "normal")
+  doc.text("Terminal: Yangshan Deep Water Port, Gate 7", 15, y)
+  doc.text("Cargo Cutoff: Mar 14, 2025 12:00 local time", 15, y + 5)
+  doc.text("Documentation Cutoff: Mar 14, 2025 18:00 local time", 15, y + 10)
+  doc.text("VGM Submission: Required before cargo cutoff", 15, y + 15)
+  addFooter(doc, DEFAULT_DATA)
+  window.open(URL.createObjectURL(doc.output("blob")), "_blank")
+}
+
+// ── Rejection Notice ────────────────────────────────────────────────────
+export function generateRejectionNotice(bookingRef: string): void {
+  const doc = new jsPDF()
+  addHeader(doc, `Booking Rejection Notice — ${bookingRef}`)
+  let y = 50
+  doc.setFillColor(255, 245, 245); doc.rect(15, y, 180, 20, "F")
+  addField(doc, "Booking Reference", bookingRef, 20, y + 6); addField(doc, "Status", "REJECTED", 120, y + 6)
+  y += 28
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("Rejection Details", 15, y); y += 8
+  addField(doc, "Route", "Chennai (MAA) → Houston (IAH)", 15, y); addField(doc, "Requested Sailing", "Mar 16, 2025", 100, y); y += 14
+  addField(doc, "Carrier", "Maersk Line", 15, y); addField(doc, "Reason", "Vessel fully allocated", 100, y)
+  y += 20
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("Alternative Options", 15, y); y += 8
+  doc.setTextColor(50, 50, 50); doc.setFontSize(9); doc.setFont("helvetica", "normal")
+  doc.text("1. Next available Maersk sailing: Mar 20, 2025 ($2,900)", 15, y)
+  doc.text("2. MSC — Mar 17, 2025 ($3,100, 2-day faster transit)", 15, y + 5)
+  doc.text("3. CMA-CGM — Mar 18, 2025 ($2,950, via Colombo transship)", 15, y + 10)
+  y += 24
+  doc.setFillColor(255, 245, 245); doc.rect(15, y, 180, 14, "F")
+  doc.setTextColor(180, 40, 40); doc.setFontSize(9); doc.setFont("helvetica", "bold")
+  doc.text("Impact: 4-day delay risk — production impact est. $45K/day (IAH Petrochem Hub)", 20, y + 9)
+  addFooter(doc, DEFAULT_DATA)
+  window.open(URL.createObjectURL(doc.output("blob")), "_blank")
+}
+
+// ── Rate Advisory ───────────────────────────────────────────────────────
+export function generateRateAdvisory(lane: string): void {
+  const doc = new jsPDF()
+  const displayLane = lane.replace(/[_-]/g, " → ").replace(/→ →/g, "→")
+  addHeader(doc, `Rate Advisory — ${displayLane}`)
+  let y = 50
+  doc.setFillColor(245, 247, 250); doc.rect(15, y, 180, 20, "F")
+  addField(doc, "Trade Lane", displayLane, 20, y + 6); addField(doc, "Effective", "Mar 12, 2025", 120, y + 6)
+  y += 28
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("Updated Spot Rates", 15, y); y += 6
+  doc.setFillColor(30, 58, 95); doc.rect(15, y, 180, 8, "F"); doc.setTextColor(255); doc.setFontSize(8); doc.setFont("helvetica", "bold")
+  doc.text("Container Type", 17, y + 5.5); doc.text("Previous Rate", 80, y + 5.5); doc.text("New Rate", 120, y + 5.5); doc.text("Change", 160, y + 5.5); y += 8
+  const rates = [["40' Reefer", "$3,400", "$3,800", "+11.8%"], ["40' High Cube", "$2,900", "$3,200", "+10.3%"], ["20' Standard", "$1,900", "$2,100", "+10.5%"]]
+  rates.forEach((r, idx) => {
+    if (idx % 2 === 0) { doc.setFillColor(248, 249, 252); doc.rect(15, y, 180, 7, "F") }
+    doc.setTextColor(50); doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.text(r[0], 17, y + 5); doc.text(r[1], 80, y + 5)
+    doc.setFont("helvetica", "bold"); doc.text(r[2], 120, y + 5); doc.setTextColor(180, 60, 40); doc.text(r[3], 160, y + 5); y += 7
+  })
+  y += 10; doc.setTextColor(80); doc.setFontSize(9); doc.setFont("helvetica", "normal")
+  doc.text("Contract rates remain unchanged. Validity: until Mar 20, 2025.", 15, y)
+  addFooter(doc, DEFAULT_DATA)
+  window.open(URL.createObjectURL(doc.output("blob")), "_blank")
+}
+
+// ── Exception Report ────────────────────────────────────────────────────
+export function generateExceptionReport(bookingRef: string): void {
+  const doc = new jsPDF()
+  addHeader(doc, `Exception Report — ${bookingRef}`)
+  let y = 50
+  doc.setFillColor(255, 250, 240); doc.rect(15, y, 180, 20, "F")
+  addField(doc, "Booking Reference", bookingRef, 20, y + 6); addField(doc, "Severity", "HIGH", 120, y + 6)
+  y += 28
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("Exception Details", 15, y); y += 8
+  addField(doc, "Type", "Booking Exception — Agent Escalation", 15, y); addField(doc, "Detected By", "Zero Touch Booking Agent", 100, y); y += 14
+  addField(doc, "Timestamp", new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" }), 15, y); addField(doc, "Agent Confidence", "92%", 100, y)
+  y += 20
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("Description", 15, y); y += 7
+  doc.setTextColor(50); doc.setFontSize(9); doc.setFont("helvetica", "normal")
+  doc.text("The booking agent encountered an exception during automated processing.", 15, y)
+  doc.text("This exception requires human review before the booking can proceed.", 15, y + 5)
+  y += 18
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("Recommended Actions", 15, y); y += 7
+  doc.setTextColor(50); doc.setFontSize(9); doc.setFont("helvetica", "normal")
+  doc.text("1. Review exception details in the Exception Workbench", 15, y)
+  doc.text("2. Verify data accuracy with origin plant team", 15, y + 5)
+  doc.text("3. Approve resolution or escalate to supply chain manager", 15, y + 10)
+  y += 24
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("AI Analysis Sources", 15, y); y += 7
+  doc.setTextColor(80); doc.setFontSize(8); doc.setFont("helvetica", "normal")
+  doc.text("SAP TM  |  OTM  |  Carrier Portal  |  Rate Management System  |  Historical Booking Data", 15, y)
+  addFooter(doc, DEFAULT_DATA)
+  window.open(URL.createObjectURL(doc.output("blob")), "_blank")
+}
+
+// ── EDI Status Report ───────────────────────────────────────────────────
+export function generateEDIStatus(bookingRef: string): void {
+  const doc = new jsPDF()
+  addHeader(doc, `EDI Status Report — ${bookingRef}`)
+  let y = 50
+  doc.setFillColor(245, 247, 250); doc.rect(15, y, 180, 20, "F")
+  addField(doc, "Booking Reference", bookingRef, 20, y + 6); addField(doc, "EDI Type", "315 — Booking Status", 120, y + 6)
+  y += 28
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("Transaction Details", 15, y); y += 8
+  addField(doc, "Carrier", "Hapag-Lloyd", 15, y); addField(doc, "Direction", "Inbound", 100, y); y += 14
+  addField(doc, "Status Code", "DR — Documents Received", 15, y); addField(doc, "Confirmation", "Pending", 100, y); y += 14
+  addField(doc, "Received", new Date().toLocaleString("en", { dateStyle: "medium", timeStyle: "short" }), 15, y); addField(doc, "Gateway", "EDI Gateway — Auto-processed", 100, y)
+  y += 20
+  doc.setTextColor(30, 58, 95); doc.setFontSize(11); doc.setFont("helvetica", "bold"); doc.text("Raw EDI Message Excerpt", 15, y); y += 7
+  doc.setFillColor(240, 240, 245); doc.rect(15, y, 180, 30, "F")
+  doc.setTextColor(60); doc.setFontSize(7); doc.setFont("courier", "normal")
+  doc.text("ISA*00*          *00*          *ZZ*HLAG           *ZZ*COMPANY        *", 18, y + 5)
+  doc.text("GS*QO*HLAG*COMPANY*20250313*0520*1*X*004010", 18, y + 9)
+  doc.text("ST*315*0001", 18, y + 13)
+  doc.text(`B1*HLAG*${bookingRef}*20250313*DR`, 18, y + 17)
+  doc.text("SE*4*0001", 18, y + 21)
+  addFooter(doc, DEFAULT_DATA)
+  window.open(URL.createObjectURL(doc.output("blob")), "_blank")
+}

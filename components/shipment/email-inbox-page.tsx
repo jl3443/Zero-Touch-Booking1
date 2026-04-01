@@ -5,6 +5,7 @@ import { INBOX_EMAILS, DEMO_TRIGGER_EMAILS, type InboxEmail, type EmailTag } fro
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
 import { Mail, MailOpen, Tag, Clock, Package, ChevronLeft, Brain, AlertTriangle, CheckCircle2, ArrowRight, CheckCircle, Loader2, RefreshCw, FileText, Paperclip, Sparkles, Play } from "lucide-react"
+import { generateSLI, generatePackingList, generateCustomsDeclaration, generateSAPShipmentOrder, generateBookingConfirmation, generateRejectionNotice, generateRateAdvisory, generateExceptionReport, generateEDIStatus } from "@/lib/pdf-generator"
 
 const TAG_CONFIG: Record<EmailTag, { label: string; color: string }> = {
   sap:       { label: "SAP",       color: "bg-blue-50 border-blue-200 text-blue-700" },
@@ -96,6 +97,19 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
     return () => timers.forEach(clearTimeout)
   }, [selected?.id])
 
+  // PDF attachment opener
+  const openAttachmentPdf = (filename: string) => {
+    const ref = filename.replace(/\.pdf$/, "")
+    if (ref.startsWith("SAP_Shipment_Order_") || ref.startsWith("Shipment_Requirement_")) return generateSAPShipmentOrder(ref.replace(/^(SAP_Shipment_Order_|Shipment_Requirement_)/, ""))
+    if (ref.startsWith("Booking_Confirmation_")) return generateBookingConfirmation(ref.replace("Booking_Confirmation_", ""))
+    if (ref.startsWith("Rejection_Notice_")) return generateRejectionNotice(ref.replace("Rejection_Notice_", ""))
+    if (ref.startsWith("Rate_Advisory_") || ref.startsWith("Rate_Analysis_")) return generateRateAdvisory(ref.replace(/^(Rate_Advisory_|Rate_Analysis_)/, ""))
+    if (ref.startsWith("Exception_Report_") || ref.startsWith("Validation_Report_") || ref.startsWith("Portal_Diagnostics_") || ref.startsWith("Capacity_Report_")) return generateExceptionReport(ref.replace(/^(Exception_Report_|Validation_Report_|Portal_Diagnostics_|Capacity_Report_)/, ""))
+    if (ref.startsWith("EDI_Status_")) return generateEDIStatus(ref.replace("EDI_Status_", ""))
+    if (ref.startsWith("Packing_List_")) return generatePackingList()
+    generateSLI()
+  }
+
   const filteredEmails = activeTagFilter
     ? allEmails.filter((e) => e.tag === activeTagFilter || e.tags.includes(activeTagFilter))
     : allEmails
@@ -105,12 +119,19 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
   // Check if selected email is a demo reply that should show AI analysis + return button
   const isDemoReply = selected?.id.startsWith("DEMO-INBOX-")
 
-  const ANALYSIS_PHASES = [
+  const ANALYSIS_PHASES_DEMO = [
     "Extracting shipment data from PDF...",
     "Analyzing booking requirements...",
     "Checking contract compliance (CCR-01)...",
     "Matching to workflow scenario...",
   ]
+  const ANALYSIS_PHASES_REGULAR = [
+    "Reading email content...",
+    "Cross-referencing with procurement data...",
+    "Generating resolution summary...",
+  ]
+  const activePhases = pendingEmail?.scenarioId ? ANALYSIS_PHASES_DEMO : ANALYSIS_PHASES_REGULAR
+  const totalPhases = activePhases.length
 
   const handleSelect = (email: InboxEmail) => {
     // Reset demo analysis state
@@ -142,17 +163,27 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
       return
     }
 
-    // Regular email — 500ms analysis
+    // Regular email — multi-step AI analysis (2.5s with 3 phases)
     setEmailThinking(true)
     setPendingEmail(email)
     setSelected(null)
     if (!email.read) onMarkRead?.(email.id)
     setEmails((prev) => prev.map((e) => e.id === email.id ? { ...e, read: true } : e))
-    setTimeout(() => {
-      setSelected(email)
-      setEmailThinking(false)
-      setPendingEmail(null)
-    }, 500)
+    let regPhase = 1
+    setDemoAnalysisPhase(1)
+    const regInterval = setInterval(() => {
+      regPhase++
+      if (regPhase <= 3) {
+        setDemoAnalysisPhase(regPhase)
+      } else {
+        clearInterval(regInterval)
+        setDemoAnalysisPhase(4)
+        setDemoAnalysisDone(true)
+        setSelected(email)
+        setEmailThinking(false)
+        setPendingEmail(null)
+      }
+    }, 700)
   }
 
   const handleAnalyze = (email: InboxEmail) => {
@@ -328,48 +359,65 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
           </div>
         </div>
 
-        {/* AI Thinking Skeleton */}
+        {/* AI Analysis Animation */}
         {emailThinking && pendingEmail && (
           <div className="flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center">
-            <div className="text-center space-y-4 animate-in fade-in duration-200 max-w-xs">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center mx-auto border border-blue-100">
-                <motion.div animate={{ rotate: pendingEmail.scenarioId ? 360 : 0 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}>
-                  <Brain size={24} className="text-[#0000B3]" />
-                </motion.div>
+            <div className="w-full max-w-sm space-y-6 animate-in fade-in duration-200 px-6">
+              {/* Icon */}
+              <div className="flex justify-center">
+                <div className="w-16 h-16 rounded-full bg-violet-50 flex items-center justify-center">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
+                    <Sparkles size={28} className="text-[#0000B3]" />
+                  </motion.div>
+                </div>
               </div>
+              {/* Title */}
+              <p className="text-center text-[15px] font-semibold text-gray-800">AI Agent Analyzing Email</p>
+              {/* Steps */}
+              <div className="space-y-3">
+                {activePhases.map((phase, i) => {
+                  const isDone = demoAnalysisPhase > i + 1
+                  const isActive = demoAnalysisPhase === i + 1
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: isDone || isActive ? 1 : 0.3, x: 0 }}
+                      transition={{ duration: 0.2, delay: i * 0.1 }}
+                      className="flex items-center gap-3"
+                    >
+                      <div className={cn(
+                        "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-colors duration-300",
+                        isDone ? "bg-green-100 text-green-700" : isActive ? "bg-[#0000B3]/10 text-[#0000B3]" : "bg-gray-100 text-gray-400"
+                      )}>
+                        {isDone ? <CheckCircle2 size={14} /> : i + 1}
+                      </div>
+                      <span className={cn(
+                        "text-[13px] transition-colors duration-300",
+                        isDone ? "text-green-700 font-medium" : isActive ? "text-[#0000B3] font-medium" : "text-gray-400"
+                      )}>
+                        {phase}
+                      </span>
+                      {isActive && (
+                        <Loader2 size={12} className="text-[#0000B3] animate-spin ml-auto shrink-0" />
+                      )}
+                    </motion.div>
+                  )
+                })}
+              </div>
+              {/* Progress bar */}
               <div>
-                <p className="text-[13px] font-semibold text-gray-700">
-                  {pendingEmail.scenarioId ? "AI Analyzing Document" : "AI analyzing email"}
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-[#0000B3] rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, (demoAnalysisPhase / (totalPhases + 1)) * 100)}%` }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                  />
+                </div>
+                <p className="text-[11px] text-gray-400 text-center mt-2">
+                  {Math.min(100, Math.round((demoAnalysisPhase / (totalPhases + 1)) * 100))}% complete
                 </p>
-                {/* Phase indicators for demo trigger emails */}
-                {pendingEmail.scenarioId && demoAnalysisPhase > 0 ? (
-                  <div className="mt-3 space-y-2 text-left">
-                    {ANALYSIS_PHASES.map((phase, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: demoAnalysisPhase > i ? 1 : 0.3, x: 0 }}
-                        transition={{ duration: 0.2, delay: i * 0.1 }}
-                        className="flex items-center gap-2"
-                      >
-                        {demoAnalysisPhase > i + 1 ? (
-                          <CheckCircle2 size={13} className="text-green-500 shrink-0" />
-                        ) : demoAnalysisPhase === i + 1 ? (
-                          <Loader2 size={13} className="text-[#0000B3] animate-spin shrink-0" />
-                        ) : (
-                          <div className="w-[13px] h-[13px] rounded-full border border-gray-300 shrink-0" />
-                        )}
-                        <span className={cn("text-[11px]", demoAnalysisPhase > i ? "text-gray-700" : "text-gray-400")}>{phase}</span>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-[3px] mt-1.5">
-                    {[0, 150, 300].map((d) => (
-                      <span key={d} className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: `${d}ms`, animationDuration: "900ms" }} />
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -413,15 +461,19 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
                 )}
               </div>
 
-              {/* PDF Attachment for demo trigger emails */}
+              {/* PDF Attachments — clickable to open PDF */}
               {selected.attachments && selected.attachments.length > 0 && (
-                <div className="flex items-center gap-2 mt-3">
+                <div className="flex flex-wrap items-center gap-2 mt-3">
                   {selected.attachments.map(att => (
-                    <div key={att} className="flex items-center gap-1.5 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-[11px]">
+                    <button
+                      key={att}
+                      onClick={() => openAttachmentPdf(att)}
+                      className="flex items-center gap-1.5 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-[11px] hover:bg-red-100 transition-colors cursor-pointer"
+                    >
                       <FileText size={13} className="text-red-500 shrink-0" />
                       <span className="font-medium text-red-700">{att}</span>
                       <span className="text-red-400 text-[9px] ml-1">PDF</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
