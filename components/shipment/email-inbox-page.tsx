@@ -165,7 +165,7 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
   }
 
   return (
-    <div className="flex-1 overflow-hidden bg-[#F8F9FA] flex">
+    <div className="flex-1 overflow-hidden bg-[#F8F9FA] flex h-full">
       {/* Left sidebar — FOLDERS */}
       <div className="w-[140px] shrink-0 border-r border-gray-200 bg-white py-5 px-4">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Folders</p>
@@ -265,7 +265,7 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
       </div>
 
       {/* Right panel: AI animation or email detail */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* AI Analysis Animation */}
         {emailThinking && pendingEmail && (
           <div className="flex-1 flex items-center justify-center bg-white">
