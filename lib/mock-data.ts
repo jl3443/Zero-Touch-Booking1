@@ -1209,12 +1209,59 @@ export interface InboxEmail {
   tags: EmailTag[]
   shipmentId?: string
   shipmentRef?: string
+  scenarioId?: string
+  attachments?: string[]
 }
 
 // Helper to derive fromName from email
 function emailName(email: string) {
   return email.split("@")[0].replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
+
+export const DEMO_TRIGGER_EMAILS: InboxEmail[] = [
+  {
+    id: "DEMO-TRIG-HP", from: "sap-tm@logistics.co", fromName: "SAP TM System",
+    subject: "New Shipment Requirement — SR-87234 (SHA → LAX)",
+    body: "A new shipment requirement has been created in SAP TM.\n\nShipment Requirement: SR-87234\nOrigin: Shanghai (SHA) — Suzhou Plant\nDestination: Los Angeles (LAX)\nMode: Ocean FCL\nEquipment: 2×40' HC\nTarget Ship Date: Mar 23, 2025\nCommodity: Electronics — Consumer Goods\nIncoterms: FOB Shanghai\n\nPlease review the attached requirement document and initiate the booking process.\n\nAttached: Shipment_Requirement_SR-87234.pdf",
+    timestamp: "Today, 09:15", read: false, tag: "sap", tags: ["sap", "booking"],
+    scenarioId: "happy-path", attachments: ["Shipment_Requirement_SR-87234.pdf"],
+  },
+  {
+    id: "DEMO-TRIG-CR", from: "maersk-bookings@maersk.com", fromName: "Maersk Bookings",
+    subject: "Booking Rejected — MAEU-2024-SHA-78432 (Equipment Unavailable)",
+    body: "Dear Customer,\n\nWe regret to inform you that your booking request MAEU-2024-SHA-78432 has been rejected.\n\nReason: Equipment type 40' HC not available on vessel AE-1234 (sailing Mar 22)\nAffected Route: Shanghai → Houston (MAA → IAH)\nBooking Ref: BKG-50219\n\nPlease find the rejection notice attached. We recommend rebooking on an alternative vessel or carrier.\n\nAttached: Rejection_Notice_MAEU-2024-SHA-78432.pdf",
+    timestamp: "Today, 08:42", read: false, tag: "rejection", tags: ["rejection", "carrier"],
+    scenarioId: "carrier-rejection", attachments: ["Rejection_Notice_MAEU-2024-SHA-78432.pdf"],
+  },
+  {
+    id: "DEMO-TRIG-NC", from: "capacity-alerts@logistics.co", fromName: "Capacity Monitor",
+    subject: "Capacity Alert — No Allocation Available (BOM → RTM)",
+    body: "CAPACITY ALERT\n\nAll contracted carriers report FULL capacity on the Mumbai → Rotterdam lane for the next 14 days.\n\nAffected Booking: BKG-30188\nRoute: Mumbai (BOM) → Rotterdam (RTM)\nMode: Ocean\nCarriers Checked: Maersk, MSC, Hapag-Lloyd, CMA-CGM\nStatus: No allocation available\n\nPlease review the attached capacity report and consider alternative routing options.\n\nAttached: Capacity_Report_BOM-RTM_Mar2025.pdf",
+    timestamp: "Today, 08:30", read: false, tag: "carrier", tags: ["carrier", "booking"],
+    scenarioId: "no-capacity", attachments: ["Capacity_Report_BOM-RTM_Mar2025.pdf"],
+  },
+  {
+    id: "DEMO-TRIG-PF", from: "portal-monitor@logistics.co", fromName: "Portal Monitor",
+    subject: "Portal Down — CMA-CGM API Gateway Timeout (MEM → ORD)",
+    body: "PORTAL FAILURE ALERT\n\nThe CMA-CGM carrier portal is experiencing connectivity issues.\n\nStatus: API Gateway Timeout (HTTP 504)\nAffected Booking: BKG-60441\nRoute: Memphis (MEM) → Chicago (ORD)\nMode: Road\nLast Successful Connection: 45 minutes ago\nRetry Attempts: 3/3 failed\n\nPlease review the attached diagnostics report and consider failover options.\n\nAttached: Portal_Diagnostics_CMA-CGM_Mar2025.pdf",
+    timestamp: "Today, 08:15", read: false, tag: "agent", tags: ["agent", "carrier"],
+    scenarioId: "portal-failure", attachments: ["Portal_Diagnostics_CMA-CGM_Mar2025.pdf"],
+  },
+  {
+    id: "DEMO-TRIG-RM", from: "rate-engine@logistics.co", fromName: "Rate Engine",
+    subject: "Rate Discrepancy — Maersk SHA → LAX ($3,340 vs Contract $2,800)",
+    body: "RATE MISMATCH DETECTED\n\nThe carrier quoted rate exceeds the contracted rate by 19%.\n\nBooking: BKG-70991\nRoute: Mumbai (BOM) → Los Angeles (LAX)\nCarrier: CMA-CGM\nQuoted Rate: $3,340\nContract Rate (CTR-2024-001): $2,800\nDelta: +$540 (+19.3%)\nContract Compliance Rule CCR-01: VIOLATED\n\nPlease review the attached rate analysis and determine next steps.\n\nAttached: Rate_Analysis_BKG-70991.pdf",
+    timestamp: "Today, 07:58", read: false, tag: "rate", tags: ["rate", "booking"],
+    scenarioId: "rate-mismatch", attachments: ["Rate_Analysis_BKG-70991.pdf"],
+  },
+  {
+    id: "DEMO-TRIG-MD", from: "sap-tm@logistics.co", fromName: "SAP TM Validation",
+    subject: "Missing Fields — Shipment BKG-88442 (HKG → RTM) Incomplete",
+    body: "SAP TM VALIDATION ALERT\n\nShipment BKG-88442 is missing required booking fields.\n\nRoute: Hong Kong (HKG) → Rotterdam (RTM)\nMode: Ocean\nMissing Fields:\n  - Container Type: Not specified\n  - HS Code: Missing for customs clearance\n  - Consignee Contact: Not provided\n\nPlease review the attached validation report and complete the missing data.\n\nAttached: Validation_Report_BKG-88442.pdf",
+    timestamp: "Today, 07:45", read: false, tag: "sap", tags: ["sap", "booking"],
+    scenarioId: "missing-data", attachments: ["Validation_Report_BKG-88442.pdf"],
+  },
+]
 
 export const INBOX_EMAILS: InboxEmail[] = [
   {

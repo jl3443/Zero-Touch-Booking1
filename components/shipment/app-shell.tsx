@@ -213,6 +213,7 @@ export function AppShell({ persona }: { persona?: Persona }) {
             onOpenTracking={() => {}}
             onMarkRead={handleMarkEmailRead}
             dynamicEmails={dynamicInboxEmails}
+            onStartDemo={handleStartDemo}
             onReturnToFlow={() => {
               setDemoReturnedFromInbox(true)
               setActiveTab("dashboard")

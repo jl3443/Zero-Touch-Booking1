@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { INBOX_EMAILS, type InboxEmail, type EmailTag } from "@/lib/mock-data"
+import { INBOX_EMAILS, DEMO_TRIGGER_EMAILS, type InboxEmail, type EmailTag } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
-import { motion } from "framer-motion"
-import { Mail, MailOpen, Tag, Clock, Package, ChevronLeft, Brain, AlertTriangle, CheckCircle2, ArrowRight, CheckCircle, Loader2, RefreshCw } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Mail, MailOpen, Tag, Clock, Package, ChevronLeft, Brain, AlertTriangle, CheckCircle2, ArrowRight, CheckCircle, Loader2, RefreshCw, FileText, Paperclip, Sparkles, Play } from "lucide-react"
 
 const TAG_CONFIG: Record<EmailTag, { label: string; color: string }> = {
   sap:       { label: "SAP",       color: "bg-blue-50 border-blue-200 text-blue-700" },
@@ -26,16 +26,22 @@ interface EmailInboxPageProps {
   onMarkRead?: (emailId: string) => void
   dynamicEmails?: Array<{ id: string; from: string; fromName: string; subject: string; body: string; timestamp: string; read: boolean; tag: string; tags: string[]; shipmentId: string; shipmentRef: string }>
   onReturnToFlow?: () => void
+  onStartDemo?: (scenarioId: string) => void
 }
 
-export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [], onReturnToFlow }: EmailInboxPageProps) {
+export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [], onReturnToFlow, onStartDemo }: EmailInboxPageProps) {
   const dynamicAsInbox: InboxEmail[] = dynamicEmails.map((e) => ({
     id: e.id, from: e.from, fromName: e.fromName, subject: e.subject, body: e.body,
     timestamp: e.timestamp, read: e.read, tag: e.tag as EmailTag, tags: e.tags as EmailTag[],
     shipmentId: e.shipmentId, shipmentRef: e.shipmentRef,
   }))
   const [emails, setEmails] = useState<InboxEmail[]>(INBOX_EMAILS)
-  const allEmails = [...dynamicAsInbox, ...emails]
+  // Prepend demo trigger emails at top, then dynamic, then regular
+  const allEmails = [...DEMO_TRIGGER_EMAILS, ...dynamicAsInbox, ...emails]
+
+  // Extended AI analysis state for demo trigger emails
+  const [demoAnalysisPhase, setDemoAnalysisPhase] = useState(0) // 0=none, 1-4=phases, 5=done
+  const [demoAnalysisDone, setDemoAnalysisDone] = useState(false)
   const [selected, setSelected] = useState<InboxEmail | null>(null)
   const [activeTagFilter, setActiveTagFilter] = useState<EmailTag | null>(null)
   const [analyzingEmail, setAnalyzingEmail] = useState<string | null>(null)
@@ -99,8 +105,44 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
   // Check if selected email is a demo reply that should show AI analysis + return button
   const isDemoReply = selected?.id.startsWith("DEMO-INBOX-")
 
+  const ANALYSIS_PHASES = [
+    "Extracting shipment data from PDF...",
+    "Analyzing booking requirements...",
+    "Checking contract compliance (CCR-01)...",
+    "Matching to workflow scenario...",
+  ]
+
   const handleSelect = (email: InboxEmail) => {
-    // Task 5a: Show AI thinking animation for 500ms before revealing email
+    // Reset demo analysis state
+    setDemoAnalysisPhase(0)
+    setDemoAnalysisDone(false)
+
+    if (email.scenarioId) {
+      // Demo trigger email — extended AI analysis (2.5s with 4 phases)
+      setEmailThinking(true)
+      setPendingEmail(email)
+      setSelected(null)
+      if (!email.read) onMarkRead?.(email.id)
+
+      let phase = 1
+      setDemoAnalysisPhase(1)
+      const interval = setInterval(() => {
+        phase++
+        if (phase <= 4) {
+          setDemoAnalysisPhase(phase)
+        } else {
+          clearInterval(interval)
+          setDemoAnalysisPhase(5)
+          setDemoAnalysisDone(true)
+          setSelected(email)
+          setEmailThinking(false)
+          setPendingEmail(null)
+        }
+      }, 600)
+      return
+    }
+
+    // Regular email — 500ms analysis
     setEmailThinking(true)
     setPendingEmail(email)
     setSelected(null)
@@ -259,8 +301,20 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
                             {email.shipmentId}
                           </span>
                         )}
+                        {/* PDF attachment badge */}
+                        {email.attachments && email.attachments.length > 0 && (
+                          <span className="text-[9px] text-red-600 bg-red-50 border border-red-200 flex items-center gap-0.5 font-semibold rounded-full px-1.5 py-0.5">
+                            <Paperclip size={8} /> PDF
+                          </span>
+                        )}
+                        {/* Demo scenario badge */}
+                        {email.scenarioId && (
+                          <span className="text-[9px] text-white bg-[#0000B3] flex items-center gap-0.5 font-semibold rounded-full px-1.5 py-0.5">
+                            <Sparkles size={8} /> Demo
+                          </span>
+                        )}
                         {/* AI Ready badge for emails without registered booking */}
-                        {!email.shipmentId && extractBookingId(email.body) && (
+                        {!email.shipmentId && !email.scenarioId && extractBookingId(email.body) && (
                           <span className="text-[9px] text-white bg-indigo-600 flex items-center gap-0.5 font-semibold rounded-full px-1.5 py-0.5">
                             <Brain size={8} /> AI Analyze
                           </span>
@@ -277,17 +331,45 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
         {/* AI Thinking Skeleton */}
         {emailThinking && pendingEmail && (
           <div className="flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center">
-            <div className="text-center space-y-3 animate-in fade-in duration-200">
-              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mx-auto">
-                <Brain size={22} className="text-blue-500 animate-pulse" />
+            <div className="text-center space-y-4 animate-in fade-in duration-200 max-w-xs">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center mx-auto border border-blue-100">
+                <motion.div animate={{ rotate: pendingEmail.scenarioId ? 360 : 0 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}>
+                  <Brain size={24} className="text-[#0000B3]" />
+                </motion.div>
               </div>
               <div>
-                <p className="text-[13px] font-semibold text-gray-700">AI analyzing email</p>
-                <div className="flex items-center justify-center gap-[3px] mt-1.5">
-                  {[0, 150, 300].map((d) => (
-                    <span key={d} className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: `${d}ms`, animationDuration: "900ms" }} />
-                  ))}
-                </div>
+                <p className="text-[13px] font-semibold text-gray-700">
+                  {pendingEmail.scenarioId ? "AI Analyzing Document" : "AI analyzing email"}
+                </p>
+                {/* Phase indicators for demo trigger emails */}
+                {pendingEmail.scenarioId && demoAnalysisPhase > 0 ? (
+                  <div className="mt-3 space-y-2 text-left">
+                    {ANALYSIS_PHASES.map((phase, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: demoAnalysisPhase > i ? 1 : 0.3, x: 0 }}
+                        transition={{ duration: 0.2, delay: i * 0.1 }}
+                        className="flex items-center gap-2"
+                      >
+                        {demoAnalysisPhase > i + 1 ? (
+                          <CheckCircle2 size={13} className="text-green-500 shrink-0" />
+                        ) : demoAnalysisPhase === i + 1 ? (
+                          <Loader2 size={13} className="text-[#0000B3] animate-spin shrink-0" />
+                        ) : (
+                          <div className="w-[13px] h-[13px] rounded-full border border-gray-300 shrink-0" />
+                        )}
+                        <span className={cn("text-[11px]", demoAnalysisPhase > i ? "text-gray-700" : "text-gray-400")}>{phase}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-[3px] mt-1.5">
+                    {[0, 150, 300].map((d) => (
+                      <span key={d} className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: `${d}ms`, animationDuration: "900ms" }} />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -330,6 +412,48 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
                   </button>
                 )}
               </div>
+
+              {/* PDF Attachment for demo trigger emails */}
+              {selected.attachments && selected.attachments.length > 0 && (
+                <div className="flex items-center gap-2 mt-3">
+                  {selected.attachments.map(att => (
+                    <div key={att} className="flex items-center gap-1.5 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-[11px]">
+                      <FileText size={13} className="text-red-500 shrink-0" />
+                      <span className="font-medium text-red-700">{att}</span>
+                      <span className="text-red-400 text-[9px] ml-1">PDF</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Start Booking button for demo trigger emails */}
+              {selected.scenarioId && demoAnalysisDone && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="mt-3 p-3 rounded-xl bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-lg bg-[#0000B3]/10 flex items-center justify-center">
+                        <Sparkles size={14} className="text-[#0000B3]" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-800">AI Analysis Complete</p>
+                        <p className="text-[10px] text-slate-500">Shipment requirements extracted from PDF — ready to initiate booking workflow</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onStartDemo?.(selected.scenarioId!)}
+                      className="flex items-center gap-2 rounded-xl bg-[#0000B3] hover:bg-[#00009A] px-5 py-2.5 text-sm font-semibold text-white transition-colors shadow-sm"
+                    >
+                      <Play size={14} />
+                      Start Booking
+                    </button>
+                  </div>
+                </motion.div>
+              )}
             </div>
 
             {/* AI Analysis Banner */}
