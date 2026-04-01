@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { INBOX_EMAILS, DEMO_TRIGGER_EMAILS, type InboxEmail, type EmailTag } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
-import { motion, AnimatePresence } from "framer-motion"
-import { Mail, MailOpen, Tag, Clock, Package, ChevronLeft, Brain, AlertTriangle, CheckCircle2, ArrowRight, CheckCircle, Loader2, RefreshCw, FileText, Paperclip, Sparkles, Play } from "lucide-react"
+import { motion } from "framer-motion"
+import { Mail, MailOpen, Tag, Clock, Package, ChevronLeft, Brain, AlertTriangle, CheckCircle2, ArrowRight, CheckCircle, Loader2, RefreshCw, FileText, Paperclip, Sparkles, Play, Send as SendIcon } from "lucide-react"
 import { generateSLI, generatePackingList, generateCustomsDeclaration, generateSAPShipmentOrder, generateBookingConfirmation, generateRejectionNotice, generateRateAdvisory, generateExceptionReport, generateEDIStatus } from "@/lib/pdf-generator"
 
 const TAG_CONFIG: Record<EmailTag, { label: string; color: string }> = {
@@ -16,7 +16,6 @@ const TAG_CONFIG: Record<EmailTag, { label: string; color: string }> = {
   agent:     { label: "Agent",     color: "bg-purple-50 border-purple-200 text-purple-700" },
 }
 
-// Extracts the first BKG-XXXXX from an email body
 function extractBookingId(body: string): string | null {
   const match = body.match(/BKG-\d+/)
   return match ? match[0] : null
@@ -37,39 +36,34 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
     shipmentId: e.shipmentId, shipmentRef: e.shipmentRef,
   }))
   const [emails, setEmails] = useState<InboxEmail[]>(INBOX_EMAILS)
-  // Prepend demo trigger emails at top, then dynamic, then regular
   const allEmails = [...DEMO_TRIGGER_EMAILS, ...dynamicAsInbox, ...emails]
 
-  // Extended AI analysis state for demo trigger emails
-  const [demoAnalysisPhase, setDemoAnalysisPhase] = useState(0) // 0=none, 1-4=phases, 5=done
+  const [demoAnalysisPhase, setDemoAnalysisPhase] = useState(0)
   const [demoAnalysisDone, setDemoAnalysisDone] = useState(false)
   const [selected, setSelected] = useState<InboxEmail | null>(null)
-  const [activeTagFilter, setActiveTagFilter] = useState<EmailTag | null>(null)
   const [analyzingEmail, setAnalyzingEmail] = useState<string | null>(null)
   const [analyzedEmails, setAnalyzedEmails] = useState<Record<string, string>>({})
   const [initialLoading, setInitialLoading] = useState(true)
+  const [sidebarFolder, setSidebarFolder] = useState<"inbox" | "sent">("inbox")
 
   useEffect(() => {
     const t = setTimeout(() => setInitialLoading(false), 800)
     return () => clearTimeout(t)
   }, [])
 
-  // Task 5a: AI thinking animation on email click
   const [emailThinking, setEmailThinking] = useState(false)
   const [pendingEmail, setPendingEmail] = useState<InboxEmail | null>(null)
 
-  // Task 4: Negotiation spinner in inbox for rate-mismatch replies
+  // Negotiation spinner state
   const [negoInboxActive, setNegoInboxActive] = useState(false)
   const [negoInboxProgress, setNegoInboxProgress] = useState(0)
   const [negoInboxStatus, setNegoInboxStatus] = useState("")
   const [negoInboxComplete, setNegoInboxComplete] = useState(false)
   const negoTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
 
-  // Start negotiation spinner when rate-mismatch reply email is selected
   useEffect(() => {
     if (!selected?.id.includes("-RM-") || !selected?.id.startsWith("DEMO-INBOX-")) return
     if (negoInboxActive || negoInboxComplete) return
-
     setNegoInboxActive(true)
     const statuses = [
       "Connecting to Maersk rate desk...",
@@ -79,25 +73,14 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
     ]
     const timers: ReturnType<typeof setTimeout>[] = []
     statuses.forEach((status, i) => {
-      timers.push(setTimeout(() => {
-        setNegoInboxProgress((i + 1) * 25)
-        setNegoInboxStatus(status)
-      }, i * 1200))
+      timers.push(setTimeout(() => { setNegoInboxProgress((i + 1) * 25); setNegoInboxStatus(status) }, i * 1200))
     })
-    timers.push(setTimeout(() => {
-      setNegoInboxComplete(true)
-      setNegoInboxStatus("Negotiation complete — rate locked in")
-    }, statuses.length * 1200))
-    // Auto-return to flow after completion
-    timers.push(setTimeout(() => {
-      onReturnToFlow?.()
-    }, statuses.length * 1200 + 2000))
+    timers.push(setTimeout(() => { setNegoInboxComplete(true); setNegoInboxStatus("Negotiation complete — rate locked in") }, statuses.length * 1200))
+    timers.push(setTimeout(() => { onReturnToFlow?.() }, statuses.length * 1200 + 2000))
     negoTimersRef.current = timers
-
     return () => timers.forEach(clearTimeout)
   }, [selected?.id])
 
-  // PDF attachment opener
   const openAttachmentPdf = (filename: string) => {
     const ref = filename.replace(/\.pdf$/, "")
     if (ref.startsWith("SAP_Shipment_Order_") || ref.startsWith("Shipment_Requirement_")) return generateSAPShipmentOrder(ref.replace(/^(SAP_Shipment_Order_|Shipment_Requirement_)/, ""))
@@ -110,73 +93,35 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
     generateSLI()
   }
 
-  const filteredEmails = activeTagFilter
-    ? allEmails.filter((e) => e.tag === activeTagFilter || e.tags.includes(activeTagFilter))
-    : allEmails
-
-  const unreadCount = allEmails.filter((e) => !e.read).length
-
-  // Check if selected email is a demo reply that should show AI analysis + return button
   const isDemoReply = selected?.id.startsWith("DEMO-INBOX-")
 
-  const ANALYSIS_PHASES_DEMO = [
-    "Extracting shipment data from PDF...",
-    "Analyzing booking requirements...",
-    "Checking contract compliance (CCR-01)...",
-    "Matching to workflow scenario...",
-  ]
-  const ANALYSIS_PHASES_REGULAR = [
+  const ANALYSIS_PHASES = [
     "Reading email content...",
     "Cross-referencing with procurement data...",
     "Generating resolution summary...",
   ]
-  const activePhases = pendingEmail?.scenarioId ? ANALYSIS_PHASES_DEMO : ANALYSIS_PHASES_REGULAR
-  const totalPhases = activePhases.length
 
   const handleSelect = (email: InboxEmail) => {
-    // Reset demo analysis state
     setDemoAnalysisPhase(0)
     setDemoAnalysisDone(false)
 
-    if (email.scenarioId) {
-      // Demo trigger email — extended AI analysis (2.5s with 4 phases)
-      setEmailThinking(true)
-      setPendingEmail(email)
-      setSelected(null)
-      if (!email.read) onMarkRead?.(email.id)
-
-      let phase = 1
-      setDemoAnalysisPhase(1)
-      const interval = setInterval(() => {
-        phase++
-        if (phase <= 4) {
-          setDemoAnalysisPhase(phase)
-        } else {
-          clearInterval(interval)
-          setDemoAnalysisPhase(5)
-          setDemoAnalysisDone(true)
-          setSelected(email)
-          setEmailThinking(false)
-          setPendingEmail(null)
-        }
-      }, 600)
-      return
-    }
-
-    // Regular email — multi-step AI analysis (2.5s with 3 phases)
     setEmailThinking(true)
     setPendingEmail(email)
     setSelected(null)
     if (!email.read) onMarkRead?.(email.id)
-    setEmails((prev) => prev.map((e) => e.id === email.id ? { ...e, read: true } : e))
-    let regPhase = 1
+    if (!email.scenarioId) {
+      setEmails((prev) => prev.map((e) => e.id === email.id ? { ...e, read: true } : e))
+    }
+
+    // All emails use 3-phase animation
+    let phase = 1
     setDemoAnalysisPhase(1)
-    const regInterval = setInterval(() => {
-      regPhase++
-      if (regPhase <= 3) {
-        setDemoAnalysisPhase(regPhase)
+    const interval = setInterval(() => {
+      phase++
+      if (phase <= 3) {
+        setDemoAnalysisPhase(phase)
       } else {
-        clearInterval(regInterval)
+        clearInterval(interval)
         setDemoAnalysisPhase(4)
         setDemoAnalysisDone(true)
         setSelected(email)
@@ -190,20 +135,14 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
     setAnalyzingEmail(email.id)
     setTimeout(() => {
       const extracted = extractBookingId(email.body)
-      if (extracted) {
-        setAnalyzedEmails((prev) => ({ ...prev, [email.id]: extracted }))
-      }
+      if (extracted) setAnalyzedEmails((prev) => ({ ...prev, [email.id]: extracted }))
       setAnalyzingEmail(null)
     }, 2000)
   }
 
-  // Determine if the selected email should show the AI analysis banner
   const showAnalysisBanner = selected && !selected.shipmentId && extractBookingId(selected.body) !== null
   const isAnalyzing = selected ? analyzingEmail === selected.id : false
   const analysisResult = selected ? analyzedEmails[selected.id] : null
-
-  // All unique tags for filter bar
-  const allTags = Object.keys(TAG_CONFIG) as EmailTag[]
 
   if (initialLoading) {
     return (
@@ -226,197 +165,161 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
   }
 
   return (
-    <div className="flex-1 overflow-hidden bg-[#F8F9FA] flex flex-col">
-      <div className="p-6 pb-3 max-w-[1100px] mx-auto w-full">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center">
-              <Mail size={16} className="text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-800">Inbox</h2>
-              <p className="text-xs text-gray-400">SAP requirements, carrier confirmations, and agent alerts</p>
-            </div>
-          </div>
-          {unreadCount > 0 && (
-            <span className="text-xs font-semibold bg-blue-600 text-white rounded-full px-2.5 py-1">
-              {unreadCount} unread
-            </span>
+    <div className="flex-1 overflow-hidden bg-[#F8F9FA] flex">
+      {/* Left sidebar — FOLDERS */}
+      <div className="w-[140px] shrink-0 border-r border-gray-200 bg-white py-5 px-4">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Folders</p>
+        <button
+          onClick={() => setSidebarFolder("inbox")}
+          className={cn(
+            "flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-[13px] font-medium transition-colors mb-1",
+            sidebarFolder === "inbox" ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50"
           )}
-        </motion.div>
+        >
+          <Mail size={14} /> Inbox
+        </button>
+        <button
+          onClick={() => setSidebarFolder("sent")}
+          className={cn(
+            "flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-[13px] font-medium transition-colors",
+            sidebarFolder === "sent" ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50"
+          )}
+        >
+          <SendIcon size={14} /> Sent
+        </button>
+      </div>
 
-        {/* Tag filter bar */}
-        <div className="flex items-center gap-1.5 mb-3">
-          <button
-            onClick={() => setActiveTagFilter(null)}
-            className={cn(
-              "text-[10px] font-semibold border rounded-full px-2.5 py-1 transition-colors",
-              activeTagFilter === null
-                ? "bg-gray-800 text-white border-gray-800"
-                : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
-            )}
-          >
-            All ({emails.length})
-          </button>
-          {allTags.map((tag) => {
-            const count = emails.filter((e) => e.tag === tag || e.tags.includes(tag)).length
-            if (count === 0) return null
-            const cfg = TAG_CONFIG[tag]
+      {/* Email list */}
+      <div className={cn("flex flex-col border-r border-gray-200 bg-white shrink-0 overflow-hidden", selected || emailThinking ? "w-[340px]" : "w-[340px]")}>
+        {/* List header */}
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Mail size={15} className="text-gray-500" />
+            <span className="text-[14px] font-semibold text-gray-800">Inbox</span>
+          </div>
+          <span className="text-[12px] text-gray-400">{allEmails.length} messages</span>
+        </div>
+
+        {/* Email items */}
+        <div className="overflow-y-auto flex-1">
+          {allEmails.map((email) => {
+            const isSelected = selected?.id === email.id || pendingEmail?.id === email.id
+            const initial = email.fromName.charAt(0).toUpperCase()
+            const previewText = email.body.split("\n").find(l => l.trim()) || ""
+            const attCount = email.attachments?.length || 0
+            const hasAiBadge = email.scenarioId || (!email.shipmentId && extractBookingId(email.body))
+
             return (
               <button
-                key={tag}
-                onClick={() => setActiveTagFilter(activeTagFilter === tag ? null : tag)}
+                key={email.id}
+                onClick={() => handleSelect(email)}
                 className={cn(
-                  "text-[10px] font-semibold border rounded-full px-2.5 py-1 transition-colors",
-                  activeTagFilter === tag
-                    ? cfg.color
-                    : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
+                  "w-full text-left px-4 py-3.5 border-b border-gray-100 hover:bg-gray-50 transition-colors",
+                  isSelected && "bg-blue-50 border-l-[3px] border-l-blue-500",
                 )}
               >
-                {cfg.label} ({count})
+                <div className="flex items-start gap-3">
+                  {/* Avatar circle */}
+                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-[12px] font-bold text-white">{initial}</span>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    {/* Sender + date */}
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <span className={cn("text-[13px] truncate", !email.read ? "font-semibold text-gray-900" : "font-medium text-gray-600")}>
+                        {email.fromName}
+                      </span>
+                      <span className="text-[11px] text-gray-400 shrink-0">{email.timestamp}</span>
+                    </div>
+
+                    {/* Subject */}
+                    <div className={cn("text-[12px] truncate mb-0.5", !email.read ? "text-gray-800 font-medium" : "text-gray-500")}>
+                      {email.subject}
+                    </div>
+
+                    {/* Preview text */}
+                    <div className="text-[11px] text-gray-400 truncate mb-1.5">
+                      {previewText.slice(0, 60)}{previewText.length > 60 ? "..." : ""}
+                    </div>
+
+                    {/* Bottom row: attachments + AI badge */}
+                    <div className="flex items-center gap-2">
+                      {attCount > 0 && (
+                        <span className="text-[11px] text-gray-400 flex items-center gap-1">
+                          <Paperclip size={10} /> {attCount}
+                        </span>
+                      )}
+                      {hasAiBadge && (
+                        <span className="text-[10px] text-emerald-600 flex items-center gap-0.5 font-semibold">
+                          <Sparkles size={9} /> AI
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </button>
             )
           })}
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden max-w-[1100px] mx-auto w-full px-6 pb-6 gap-4">
-        {/* Email list */}
-        <div className={cn(
-          "flex flex-col bg-white rounded-xl border border-gray-200 overflow-hidden shrink-0",
-          selected ? "w-72" : "flex-1"
-        )}>
-          <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-              {filteredEmails.length} messages
-            </span>
-          </div>
-          <div className="overflow-y-auto flex-1">
-            {filteredEmails.map((email) => {
-              const tagCfg = TAG_CONFIG[email.tag] ?? { label: email.tag || "Other", color: "bg-gray-50 border-gray-200 text-gray-700" }
-              const isSelected = selected?.id === email.id || pendingEmail?.id === email.id
-              return (
-                <button
-                  key={email.id}
-                  onClick={() => handleSelect(email)}
-                  className={cn(
-                    "w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors",
-                    isSelected && "bg-blue-50/60 border-l-2 border-l-blue-500",
-                    !email.read && "bg-white"
-                  )}
-                >
-                  <div className="flex items-start gap-2">
-                    <div className="mt-1 shrink-0">
-                      {email.read
-                        ? <MailOpen size={13} className="text-gray-300" />
-                        : <Mail size={13} className="text-blue-500" />
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <span className={cn("text-xs truncate", email.read ? "text-gray-500 font-normal" : "text-gray-800 font-semibold")}>
-                          {email.fromName}
-                        </span>
-                        <span className="text-[10px] text-gray-400 shrink-0">{email.timestamp}</span>
-                      </div>
-                      <div className={cn("text-[11px] mb-1 truncate", email.read ? "text-gray-500" : "text-gray-700 font-medium")}>
-                        {email.subject}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className={cn("text-[9px] font-semibold border rounded-full px-1.5 py-0.5", tagCfg.color)}>
-                          {tagCfg.label}
-                        </span>
-                        {email.shipmentId && (
-                          <span className="text-[9px] font-mono text-blue-700 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5">
-                            {email.shipmentId}
-                          </span>
-                        )}
-                        {/* PDF attachment badge */}
-                        {email.attachments && email.attachments.length > 0 && (
-                          <span className="text-[9px] text-red-600 bg-red-50 border border-red-200 flex items-center gap-0.5 font-semibold rounded-full px-1.5 py-0.5">
-                            <Paperclip size={8} /> PDF
-                          </span>
-                        )}
-                        {/* Demo scenario badge */}
-                        {email.scenarioId && (
-                          <span className="text-[9px] text-white bg-[#0000B3] flex items-center gap-0.5 font-semibold rounded-full px-1.5 py-0.5">
-                            <Sparkles size={8} /> Demo
-                          </span>
-                        )}
-                        {/* AI Ready badge for emails without registered booking */}
-                        {!email.shipmentId && !email.scenarioId && extractBookingId(email.body) && (
-                          <span className="text-[9px] text-white bg-indigo-600 flex items-center gap-0.5 font-semibold rounded-full px-1.5 py-0.5">
-                            <Brain size={8} /> AI Analyze
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
+      {/* Right panel: AI animation or email detail */}
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* AI Analysis Animation */}
         {emailThinking && pendingEmail && (
-          <div className="flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center">
-            <div className="w-full max-w-sm space-y-6 animate-in fade-in duration-200 px-6">
+          <div className="flex-1 flex items-center justify-center bg-white">
+            <div className="w-full max-w-md space-y-8 px-8">
               {/* Icon */}
               <div className="flex justify-center">
-                <div className="w-16 h-16 rounded-full bg-violet-50 flex items-center justify-center">
-                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
-                    <Sparkles size={28} className="text-[#0000B3]" />
-                  </motion.div>
+                <div className="w-20 h-20 rounded-full bg-[#EEEEF8] flex items-center justify-center">
+                  <Sparkles size={32} className="text-[#5B5BD6]" />
                 </div>
               </div>
+
               {/* Title */}
-              <p className="text-center text-[15px] font-semibold text-gray-800">AI Agent Analyzing Email</p>
+              <p className="text-center text-[16px] font-semibold text-gray-900">AI Agent Analyzing Email</p>
+
               {/* Steps */}
-              <div className="space-y-3">
-                {activePhases.map((phase, i) => {
+              <div className="space-y-4">
+                {ANALYSIS_PHASES.map((phase, i) => {
                   const isDone = demoAnalysisPhase > i + 1
                   const isActive = demoAnalysisPhase === i + 1
+                  const isFuture = demoAnalysisPhase <= i
                   return (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: isDone || isActive ? 1 : 0.3, x: 0 }}
-                      transition={{ duration: 0.2, delay: i * 0.1 }}
-                      className="flex items-center gap-3"
-                    >
+                    <div key={i} className="flex items-center gap-3">
                       <div className={cn(
-                        "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-colors duration-300",
-                        isDone ? "bg-green-100 text-green-700" : isActive ? "bg-[#0000B3]/10 text-[#0000B3]" : "bg-gray-100 text-gray-400"
+                        "w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold shrink-0 transition-all duration-500",
+                        isDone
+                          ? "bg-emerald-100 text-emerald-600"
+                          : isActive
+                            ? "bg-[#5B5BD6]/15 text-[#5B5BD6]"
+                            : "bg-gray-100 text-gray-400"
                       )}>
-                        {isDone ? <CheckCircle2 size={14} /> : i + 1}
+                        {isDone ? <CheckCircle2 size={15} /> : i + 1}
                       </div>
                       <span className={cn(
-                        "text-[13px] transition-colors duration-300",
-                        isDone ? "text-green-700 font-medium" : isActive ? "text-[#0000B3] font-medium" : "text-gray-400"
+                        "text-[14px] transition-all duration-500",
+                        isDone ? "text-emerald-600 font-medium" : isActive ? "text-gray-700 font-medium" : "text-gray-400"
                       )}>
                         {phase}
                       </span>
-                      {isActive && (
-                        <Loader2 size={12} className="text-[#0000B3] animate-spin ml-auto shrink-0" />
-                      )}
-                    </motion.div>
+                      {isActive && <Loader2 size={14} className="text-[#5B5BD6] animate-spin ml-auto shrink-0" />}
+                    </div>
                   )
                 })}
               </div>
+
               {/* Progress bar */}
               <div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-[#0000B3] rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, (demoAnalysisPhase / (totalPhases + 1)) * 100)}%` }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
+                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#5B5BD6] rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${Math.min(100, Math.round((demoAnalysisPhase / 4) * 100))}%` }}
                   />
                 </div>
-                <p className="text-[11px] text-gray-400 text-center mt-2">
-                  {Math.min(100, Math.round((demoAnalysisPhase / (totalPhases + 1)) * 100))}% complete
+                <p className="text-[12px] text-gray-400 text-center mt-3">
+                  {Math.min(100, Math.round((demoAnalysisPhase / 4) * 100))}% complete
                 </p>
               </div>
             </div>
@@ -424,26 +327,25 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
         )}
 
         {/* Email detail */}
-        {!emailThinking && selected ? (
-          <div className="flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
+        {!emailThinking && selected && (
+          <div className="flex-1 flex flex-col overflow-hidden bg-white">
             {/* Detail header */}
-            <div className="px-5 py-4 border-b border-gray-100">
+            <div className="px-6 py-5 border-b border-gray-100">
               <button
                 onClick={() => setSelected(null)}
                 className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 mb-3 transition-colors"
               >
                 <ChevronLeft size={12} /> Back
               </button>
-              <h3 className="text-sm font-semibold text-gray-800 mb-2 leading-snug">{selected.subject}</h3>
-              <div className="flex items-center gap-3 text-[11px] text-gray-400">
-                <span>From: <span className="text-gray-600 font-medium">{selected.fromName}</span> &lt;{selected.from}&gt;</span>
-                <span className="flex items-center gap-1"><Clock size={10} /> {selected.timestamp}</span>
+              <h3 className="text-[15px] font-semibold text-gray-900 mb-2 leading-snug">{selected.subject}</h3>
+              <div className="flex items-center gap-3 text-[12px] text-gray-400">
+                <span>From: <span className="text-gray-700 font-medium">{selected.fromName}</span> &lt;{selected.from}&gt;</span>
+                <span className="flex items-center gap-1"><Clock size={11} /> {selected.timestamp}</span>
               </div>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-2.5">
                 <span className={cn("text-[10px] font-semibold border rounded-full px-2 py-0.5", (TAG_CONFIG[selected.tag] ?? { color: "bg-gray-50 border-gray-200 text-gray-700" }).color)}>
                   <Tag size={9} className="inline mr-1" />{(TAG_CONFIG[selected.tag] ?? { label: selected.tag }).label}
                 </span>
-                {/* Show all secondary tags */}
                 {selected.tags
                   .filter((t) => t !== selected.tag && TAG_CONFIG[t])
                   .map((t) => (
@@ -461,7 +363,7 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
                 )}
               </div>
 
-              {/* PDF Attachments — clickable to open PDF */}
+              {/* PDF Attachments */}
               {selected.attachments && selected.attachments.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2 mt-3">
                   {selected.attachments.map(att => (
@@ -493,15 +395,14 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-slate-800">AI Analysis Complete</p>
-                        <p className="text-[10px] text-slate-500">Shipment requirements extracted from PDF — ready to initiate booking workflow</p>
+                        <p className="text-[10px] text-slate-500">Shipment requirements extracted — ready to initiate booking</p>
                       </div>
                     </div>
                     <button
                       onClick={() => onStartDemo?.(selected.scenarioId!)}
                       className="flex items-center gap-2 rounded-xl bg-[#0000B3] hover:bg-[#00009A] px-5 py-2.5 text-sm font-semibold text-white transition-colors shadow-sm"
                     >
-                      <Play size={14} />
-                      Start Booking
+                      <Play size={14} /> Start Booking
                     </button>
                   </div>
                 </motion.div>
@@ -511,26 +412,13 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
             {/* AI Analysis Banner */}
             {showAnalysisBanner && !analysisResult && (
               <div className={cn(
-                "mx-5 mt-4 rounded-xl border px-4 py-3 flex items-center justify-between gap-3",
-                isAnalyzing
-                  ? "border-indigo-200 bg-indigo-50"
-                  : "border-amber-200 bg-amber-50"
+                "mx-6 mt-4 rounded-xl border px-4 py-3 flex items-center justify-between gap-3",
+                isAnalyzing ? "border-indigo-200 bg-indigo-50" : "border-amber-200 bg-amber-50"
               )}>
                 {isAnalyzing ? (
                   <div className="flex items-center gap-2">
                     <Brain size={15} className="text-indigo-500 animate-pulse shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold text-indigo-700">Analyzing booking reference...</p>
-                      <div className="flex items-end gap-[3px] mt-0.5">
-                        {[0, 150, 300].map((d) => (
-                          <span
-                            key={d}
-                            className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce"
-                            style={{ animationDelay: `${d}ms`, animationDuration: "900ms" }}
-                          />
-                        ))}
-                      </div>
-                    </div>
+                    <p className="text-xs font-semibold text-indigo-700">Analyzing booking reference...</p>
                   </div>
                 ) : (
                   <>
@@ -538,7 +426,7 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
                       <AlertTriangle size={14} className="text-amber-600 shrink-0" />
                       <div>
                         <p className="text-xs font-semibold text-amber-800">Booking reference detected. AI analysis ready.</p>
-                        <p className="text-[11px] text-amber-600">Booking ID found in body -- not yet linked in system</p>
+                        <p className="text-[11px] text-amber-600">Booking ID found in body — not yet linked in system</p>
                       </div>
                     </div>
                     <button
@@ -552,42 +440,32 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
               </div>
             )}
 
-            {/* Analysis Result Card */}
+            {/* Analysis Result */}
             {analysisResult && (
-              <div className="mx-5 mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 space-y-2">
+              <div className="mx-6 mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={14} className="text-green-600 shrink-0" />
                   <p className="text-xs font-semibold text-green-800">AI Analysis Complete</p>
                 </div>
                 <div className="space-y-1 text-[11px] text-green-700 pl-5">
-                  <div className="flex items-center gap-1">
-                    <CheckCircle2 size={10} className="text-green-500" />
-                    <span>Booking ID identified: <span className="font-mono font-bold text-green-800">{analysisResult}</span></span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <CheckCircle2 size={10} className="text-green-500" />
-                    <span>Booking linked to monitoring</span>
-                  </div>
+                  <div className="flex items-center gap-1"><CheckCircle2 size={10} className="text-green-500" /><span>Booking ID: <span className="font-mono font-bold text-green-800">{analysisResult}</span></span></div>
+                  <div className="flex items-center gap-1"><CheckCircle2 size={10} className="text-green-500" /><span>Booking linked to monitoring</span></div>
                 </div>
-                <button
-                  onClick={() => onOpenTracking?.(analysisResult)}
-                  className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900 transition-colors"
-                >
+                <button onClick={() => onOpenTracking?.(analysisResult)} className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900 transition-colors">
                   Open Booking Detail <ArrowRight size={12} />
                 </button>
               </div>
             )}
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto px-5 py-4">
-              <pre className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap font-sans">
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <pre className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap font-sans">
                 {selected.body}
               </pre>
 
-              {/* AI Analysis + Return to Flow for demo reply emails */}
+              {/* Rate negotiation spinner */}
               {isDemoReply && selected.id.includes("-RM-") && (
                 <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                  {/* Negotiation spinner for rate-mismatch */}
                   <div className="p-4 bg-[#0f1623] rounded-xl border border-slate-700">
                     <div className="flex items-center gap-2 mb-3">
                       {negoInboxComplete ? <CheckCircle size={16} className="text-emerald-400" /> : <Brain size={16} className="text-violet-400 animate-pulse" />}
@@ -653,13 +531,18 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
               )}
             </div>
           </div>
-        ) : (
-          <div className="hidden" />
         )}
 
-        {/* Empty state when nothing selected and list is shown full-width */}
-        {!selected && (
-          <div className="hidden" />
+        {/* Empty state — no email selected */}
+        {!emailThinking && !selected && (
+          <div className="flex-1 flex items-center justify-center bg-white">
+            <div className="text-center space-y-3">
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto">
+                <Mail size={24} className="text-gray-300" />
+              </div>
+              <p className="text-[14px] text-gray-400">Select an email to view</p>
+            </div>
+          </div>
         )}
       </div>
     </div>
