@@ -10,13 +10,13 @@ import { Award, TrendingUp, TrendingDown, Minus, Star, AlertTriangle, CheckCircl
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const RATING_CONFIG: Record<CarrierRating, { label: string; color: string; dot: string; icon: React.ReactNode }> = {
-  Preferred: { label: "Preferred", color: "text-green-700 bg-green-50 border-green-200", dot: "bg-green-500", icon: <Star size={11} className="fill-green-600 text-green-600" /> },
+  Preferred: { label: "Preferred", color: "text-sky-700 bg-sky-50 border-sky-200", dot: "bg-sky-500", icon: <Star size={11} className="fill-sky-600 text-sky-600" /> },
   Standard:  { label: "Standard",  color: "text-blue-700 bg-blue-50 border-blue-200",    dot: "bg-blue-500",  icon: <CheckCircle2 size={11} className="text-blue-600" /> },
   Monitor:   { label: "Monitor",   color: "text-amber-700 bg-amber-50 border-amber-200",  dot: "bg-amber-500", icon: <AlertTriangle size={11} className="text-amber-600" /> },
 }
 
 const TREND_CONFIG: Record<PerformanceTrend, { icon: React.ReactNode; label: string; color: string }> = {
-  up:     { icon: <TrendingUp size={12} />,   label: "Up",     color: "text-green-600" },
+  up:     { icon: <TrendingUp size={12} />,   label: "Up",     color: "text-sky-600" },
   stable: { icon: <Minus size={12} />,        label: "Stable", color: "text-gray-500"  },
   down:   { icon: <TrendingDown size={12} />,  label: "Down",   color: "text-red-600"   },
 }
@@ -39,7 +39,7 @@ const successChartData = [...CARRIER_SCORECARDS]
 
 const SUCCESS_COLORS = [...CARRIER_SCORECARDS]
   .sort((a, b) => b.bookingSuccessRate - a.bookingSuccessRate)
-  .map((c) => c.bookingSuccessRate >= 95 ? "#22c55e" : c.bookingSuccessRate >= 90 ? "#3b82f6" : "#f59e0b")
+  .map((c) => c.bookingSuccessRate >= 95 ? "#0000B3" : c.bookingSuccessRate >= 90 ? "#3b82f6" : "#f59e0b")
 
 // Chart: OTP history line chart per carrier
 const OTP_COLORS_MAP: Record<string, string> = {
@@ -97,7 +97,7 @@ const carrierExceptionImpact = CARRIER_SCORECARDS.map((c) => {
 export function CarrierScorecardPage() {
   return (
     <div className="flex-1 overflow-y-auto bg-[#F8F9FA]">
-      <div className="p-6 max-w-[1200px] mx-auto space-y-5">
+      <div className="p-6 max-w-[1600px] mx-auto space-y-5">
 
         {/* Header */}
         <div className="flex items-center gap-3">
@@ -110,11 +110,11 @@ export function CarrierScorecardPage() {
           </div>
         </div>
 
-        {/* KPI strip */}
+        {/* KPI strip — carrier performance */}
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: "Avg Booking Success", value: `${avgSuccessRate}%`, sub: "Across all carriers", color: avgSuccessRate >= 90 ? "text-green-600" : "text-amber-600" },
-            { label: "Avg SLA Score",       value: `${avgSLA}%`,         sub: "Service level agreement", color: avgSLA >= 90 ? "text-green-600" : "text-amber-600" },
+            { label: "Avg Booking Success", value: `${avgSuccessRate}%`, sub: "Across all carriers", color: avgSuccessRate >= 90 ? "text-blue-600" : "text-amber-600" },
+            { label: "Avg SLA Score",       value: `${avgSLA}%`,         sub: "Service level agreement", color: avgSLA >= 90 ? "text-blue-600" : "text-amber-600" },
             { label: "Active Carriers",     value: CARRIER_SCORECARDS.length, sub: "Across all modes", color: "text-gray-800" },
             { label: "Preferred / Monitor", value: `${preferred} / ${monitor}`, sub: "Rating distribution", color: "text-gray-800" },
           ].map((k) => (
@@ -124,6 +124,33 @@ export function CarrierScorecardPage() {
               <p className="text-[10px] text-gray-400 mt-1">{k.sub}</p>
             </div>
           ))}
+        </div>
+
+        {/* Operational SLA Metrics (from TCS KPIs) */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-4 py-2.5 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
+            <Zap size={13} className="text-indigo-600" />
+            <span className="text-[10px] font-semibold text-indigo-700 uppercase tracking-wider">Operational SLA Metrics</span>
+          </div>
+          <div className="grid grid-cols-6 divide-x divide-gray-100">
+            {[
+              { label: "On-Time Delivery", value: "92%", target: "95%", status: "amber" },
+              { label: "Contracted Lane Util", value: "89%", target: "92%", status: "amber" },
+              { label: "Spot Buy Ratio", value: "4.2%", target: "≤6%", status: "green" },
+              { label: "Avg Cost/Mile (NAM)", value: "$2.56", target: "$2.89", status: "green" },
+              { label: "Critical SLA (<4h)", value: "3.2h", target: "4h", status: "green" },
+              { label: "RFQ Turnaround", value: "3.8d", target: "5d", status: "green" },
+            ].map((m) => (
+              <div key={m.label} className="px-4 py-3">
+                <p className="text-[10px] text-gray-400 font-medium mb-1">{m.label}</p>
+                <div className="flex items-baseline gap-2">
+                  <span className={cn("text-[16px] font-bold", m.status === "green" ? "text-sky-600" : "text-amber-600")}>{m.value}</span>
+                  <span className="text-[10px] text-gray-400">target {m.target}</span>
+                </div>
+                <div className={cn("w-1.5 h-1.5 rounded-full mt-1", m.status === "green" ? "bg-sky-500" : "bg-amber-500")} />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Success Rate chart + table */}
@@ -149,7 +176,7 @@ export function CarrierScorecardPage() {
 
             {/* Legend */}
             <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-500">
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-500 inline-block" /> 95%+</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-sky-500 inline-block" /> 95%+</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" /> 90-94%</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-500 inline-block" /> &lt;90%</span>
             </div>
@@ -180,7 +207,7 @@ export function CarrierScorecardPage() {
                         <td className="px-2.5 py-2.5">
                           <span className={cn(
                             "text-[10px] font-semibold rounded-full px-2 py-0.5",
-                            c.capacity === "Available" ? "bg-green-50 text-green-700" :
+                            c.capacity === "Available" ? "bg-sky-50 text-sky-700" :
                             c.capacity === "Limited" ? "bg-amber-50 text-amber-700" :
                             "bg-red-50 text-red-700"
                           )}>
@@ -188,7 +215,7 @@ export function CarrierScorecardPage() {
                           </span>
                         </td>
                         <td className="px-2.5 py-2.5">
-                          <span className={cn("font-semibold", c.slaScore >= 92 ? "text-green-700" : c.slaScore >= 88 ? "text-blue-700" : "text-amber-700")}>
+                          <span className={cn("font-semibold", c.slaScore >= 92 ? "text-sky-700" : c.slaScore >= 88 ? "text-blue-700" : "text-amber-700")}>
                             {c.slaScore}%
                           </span>
                         </td>
@@ -196,11 +223,11 @@ export function CarrierScorecardPage() {
                           <div className="flex items-center gap-2">
                             <div className="w-12 h-1.5 rounded-full bg-gray-100 overflow-hidden">
                               <div
-                                className={cn("h-full rounded-full", c.bookingSuccessRate >= 95 ? "bg-green-500" : c.bookingSuccessRate >= 90 ? "bg-blue-400" : "bg-amber-400")}
+                                className={cn("h-full rounded-full", c.bookingSuccessRate >= 95 ? "bg-sky-500" : c.bookingSuccessRate >= 90 ? "bg-blue-400" : "bg-amber-400")}
                                 style={{ width: `${c.bookingSuccessRate}%` }}
                               />
                             </div>
-                            <span className={cn("font-semibold", c.bookingSuccessRate >= 95 ? "text-green-700" : c.bookingSuccessRate >= 90 ? "text-blue-700" : "text-amber-700")}>
+                            <span className={cn("font-semibold", c.bookingSuccessRate >= 95 ? "text-sky-700" : c.bookingSuccessRate >= 90 ? "text-blue-700" : "text-amber-700")}>
                               {c.bookingSuccessRate}%
                             </span>
                           </div>
@@ -264,7 +291,7 @@ export function CarrierScorecardPage() {
 
           {carrierExceptionImpact.length === 0 ? (
             <div className="flex items-center gap-2 text-xs text-gray-400 py-4 justify-center">
-              <CheckCircle2 size={14} className="text-green-500" />
+              <CheckCircle2 size={14} className="text-sky-500" />
               No carrier-related exceptions at this time
             </div>
           ) : (
@@ -281,7 +308,7 @@ export function CarrierScorecardPage() {
                     )}
                     <span className={cn(
                       "text-[9px] font-semibold rounded-full px-1.5 py-0.5",
-                      c.capacity === "Available" ? "bg-green-50 text-green-700" :
+                      c.capacity === "Available" ? "bg-sky-50 text-sky-700" :
                       c.capacity === "Limited"   ? "bg-amber-50 text-amber-700" :
                                                    "bg-red-50 text-red-700"
                     )}>
