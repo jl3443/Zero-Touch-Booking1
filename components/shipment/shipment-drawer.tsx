@@ -1526,13 +1526,9 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
     onReturnedFromInboxConsumed?.()
 
     if (scenarioId === "rate-mismatch") {
-      // Negotiation spinner already ran in inbox — show resolved state briefly then continue
+      // Show negotiation results — wait for user to click "Continue Booking"
       setShowModal(true)
-      setNegoProgress(100)
-      setNegoComplete(true)
-      setNegoStatus("Negotiation complete — rate locked in")
-      setPhase("resolved")
-      setTimeout(() => { setShowModal(false); onResolve() }, 1200)
+      setPhase("negotiating")
     } else if (scenarioId === "missing-data") {
       // Re-open modal, fill the 3rd field (Shipper Contact), then auto-resolve
       setShowModal(true)
@@ -2006,58 +2002,86 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
     ),
     "rate-mismatch": (
       <div className="space-y-3">
-        <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Rate Comparison</div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 text-center">
-            <div className="text-[10px] text-emerald-600 font-semibold">Contract Rate</div>
-            <div className="text-[22px] font-bold text-emerald-700">$2,800</div>
-            <div className="text-[10px] text-emerald-500">per container</div>
-          </div>
-          <div className="p-3 bg-red-50 rounded-lg border border-red-200 text-center">
-            <div className="text-[10px] text-red-600 font-semibold">Quoted Rate</div>
-            <div className="text-[22px] font-bold text-red-700">$3,340</div>
-            <div className="text-[10px] text-red-500">+19% premium</div>
-          </div>
-        </div>
-        {phase === "email-compose" && emailComposeContent}
-        {(phase === "negotiating" || phase === "resolved") && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <div className="p-4 bg-[#0f1623] rounded-xl border border-slate-700 mt-3">
-              <div className="flex items-center gap-2 mb-3">
-                {negoComplete ? <CheckCircle size={16} className="text-emerald-400" /> : <Brain size={16} className="text-violet-400 animate-pulse" />}
-                <span className="text-[13px] font-bold text-white">{negoComplete ? "Negotiation Complete" : "AI Negotiating Rate"}</span>
+        {phase === "showing" && (
+          <>
+            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Rate Comparison</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 text-center">
+                <div className="text-[10px] text-blue-600 font-semibold">Contract Rate</div>
+                <div className="text-[22px] font-bold text-blue-700">$2,800</div>
+                <div className="text-[10px] text-blue-500">per container</div>
               </div>
-              <div className="h-2 bg-slate-800 rounded-full overflow-hidden mb-2">
-                <div className={cn("h-full rounded-full transition-all duration-700 ease-out", negoComplete ? "bg-emerald-500" : "bg-violet-500")} style={{ width: `${negoProgress}%` }} />
+              <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-center">
+                <div className="text-[10px] text-amber-600 font-semibold">Quoted Rate</div>
+                <div className="text-[22px] font-bold text-amber-700">$3,340</div>
+                <div className="text-[10px] text-amber-500">+19% premium</div>
               </div>
-              <div className="text-[11px] text-slate-400 mb-3">{negoStatus}</div>
-              {negoComplete && (
-                <div className="space-y-1.5 animate-in fade-in duration-300">
-                  {[
-                    { label: "Market Rate (30d avg)", value: "$3,480", badge: "Benchmark", color: "text-slate-300" },
-                    { label: "Carrier Quote", value: "$3,340", badge: "-4% vs market", color: "text-amber-300" },
-                    { label: "Counter-Offer", value: "$3,024", badge: "Sent", color: "text-violet-300" },
-                    { label: "Carrier Accepted", value: "$3,024", badge: "Accepted", color: "text-emerald-300" },
-                  ].map((r, idx) => (
-                    <div key={idx} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-slate-800/50">
-                      <div className="flex items-center gap-2">
-                        {r.badge === "Accepted" ? <CheckCircle size={12} className="text-emerald-400" /> : <div className="w-3 h-3 rounded-full border border-slate-600" />}
-                        <span className={cn("text-[11px] font-medium", r.color)}>{r.label}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[12px] font-bold text-white">{r.value}</span>
-                        <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full font-semibold",
-                          r.badge === "Accepted" ? "bg-emerald-900/50 text-emerald-300" : r.badge === "Sent" ? "bg-violet-900/50 text-violet-300" : "bg-slate-700 text-slate-400"
-                        )}>{r.badge}</span>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="mt-2 px-2 py-1.5 bg-emerald-900/30 rounded-lg border border-emerald-800/50">
-                    <span className="text-[11px] text-emerald-300 font-medium">Savings: <span className="font-bold">$316/container</span> ($632 total)</span>
-                  </div>
-                </div>
-              )}
             </div>
+          </>
+        )}
+        {phase === "email-compose" && emailComposeContent}
+        {/* Negotiation results — shown when returning from inbox */}
+        {phase === "negotiating" && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <div className="p-4 bg-[#0f1623] rounded-xl border border-slate-700">
+              <div className="flex items-center gap-2 mb-4">
+                <CheckCircle size={16} className="text-blue-400" />
+                <span className="text-[13px] font-bold text-white">Negotiation Complete</span>
+              </div>
+              {/* 3 completed steps */}
+              <div className="space-y-2 mb-4">
+                {[
+                  { label: "Validated counter-offer against contract CTR-2024-001", detail: "$3,024 vs contract ceiling $2,800 — within 8% market adjustment" },
+                  { label: "Cross-referenced 30-day spot market data (SHA→LAX)", detail: "Market avg: $3,480 — counter-offer 13% below market" },
+                  { label: "Rate lock confirmed by Maersk booking system", detail: "$3,024/container locked for 7 business days" },
+                ].map((s, i) => (
+                  <div key={i} className="p-2.5 rounded-lg bg-blue-950/50 border border-blue-800">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <CheckCircle2 size={12} className="text-blue-400 shrink-0" />
+                      <span className="text-[11px] font-semibold text-white">{s.label}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 ml-5">{s.detail}</p>
+                  </div>
+                ))}
+              </div>
+              {/* Progress bar — 100% */}
+              <div className="mb-4">
+                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-blue-500 rounded-full w-full" /></div>
+                <p className="text-[10px] text-slate-500 text-center mt-1">100% complete</p>
+              </div>
+              {/* Results */}
+              <div className="space-y-1.5">
+                {[
+                  { label: "Market Rate (30d avg)", value: "$3,480", badge: "Benchmark", color: "text-slate-300" },
+                  { label: "Carrier Quote", value: "$3,340", badge: "-4% vs market", color: "text-amber-300" },
+                  { label: "Counter-Offer", value: "$3,024", badge: "Sent", color: "text-blue-300" },
+                  { label: "Carrier Accepted", value: "$3,024", badge: "Locked", color: "text-blue-300" },
+                ].map((r, idx) => (
+                  <div key={idx} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-slate-800/50">
+                    <div className="flex items-center gap-2">
+                      {r.badge === "Locked" ? <CheckCircle size={12} className="text-blue-400" /> : <div className="w-3 h-3 rounded-full border border-slate-600" />}
+                      <span className={cn("text-[11px] font-medium", r.color)}>{r.label}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] font-bold text-white">{r.value}</span>
+                      <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full font-semibold",
+                        r.badge === "Locked" ? "bg-blue-900/50 text-blue-300" : r.badge === "Sent" ? "bg-blue-900/50 text-blue-300" : "bg-slate-700 text-slate-400"
+                      )}>{r.badge}</span>
+                    </div>
+                  </div>
+                ))}
+                <div className="mt-2 px-2 py-1.5 bg-blue-900/30 rounded-lg border border-blue-800/50">
+                  <span className="text-[11px] text-blue-300 font-medium">Savings: <span className="font-bold">$316/container</span> ($632 total for 2×40' HC)</span>
+                </div>
+              </div>
+            </div>
+            {/* Continue button — user must click to proceed */}
+            <button
+              onClick={() => { setPhase("resolved"); setTimeout(() => { setShowModal(false); onResolve() }, 800) }}
+              className="w-full flex items-center justify-center gap-2 mt-3 px-4 py-2.5 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <ArrowRight size={14} /> Continue Booking
+            </button>
           </div>
         )}
       </div>
@@ -2122,8 +2146,8 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
     if (phase === "negotiating") {
       return (
         <div className="flex items-center gap-2 justify-center py-1">
-          <Brain size={14} className="text-violet-500 animate-pulse" />
-          <span className="text-[12px] font-medium text-violet-600">AI negotiating rate<ThinkingDots /></span>
+          <CheckCircle size={14} className="text-blue-500" />
+          <span className="text-[12px] font-medium text-blue-600">Rate negotiation complete — review results above</span>
         </div>
       )
     }
