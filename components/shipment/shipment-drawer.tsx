@@ -1574,7 +1574,7 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
     { carrier: "Hapag-Lloyd", route: "BOM → RTM via Colombo", mode: "Ocean" as const, vessel: "Berlin Express / Mar 22", sailing: "Mar 22, 2025", rate: "$2,480", rateNote: "+5% vs contract", transit: "23 days", eta: "Apr 14, 2025", sla: "88%", container: "20' STD", capacity: "Limited", reason: "Transshipment routing. Limited spots remaining.", recommended: false, hasContract: true, contractId: "CTR-2023-003" },
     { carrier: "DHL Express", route: "BOM → RTM (Air Freight)", mode: "Air" as const, vessel: "LH-762 / Daily", sailing: "Mar 17, 2025", rate: "$7,800", rateNote: "Premium", transit: "2 days", eta: "Mar 19, 2025", sla: "97%", container: "Air Pallet (PMC)", capacity: "Available", reason: "Fastest option for time-critical cargo.", recommended: false, hasContract: false },
   ]
-  const ALT_CARRIERS = scenario === "carrier-rejection" ? ALT_CARRIERS_REJECTION : ALT_CARRIERS_CAPACITY
+  const ALT_CARRIERS = scenarioId === "carrier-rejection" ? ALT_CARRIERS_REJECTION : ALT_CARRIERS_CAPACITY
 
   // ─── Scenario 1: Missing Data ─────────────────────────────────────────────
   const handleResolveMissingData = () => {
