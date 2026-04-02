@@ -55,32 +55,31 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
   const [emailThinking, setEmailThinking] = useState(false)
   const [pendingEmail, setPendingEmail] = useState<InboxEmail | null>(null)
 
-  // Negotiation spinner state
-  const [negoInboxActive, setNegoInboxActive] = useState(false)
-  const [negoInboxProgress, setNegoInboxProgress] = useState(0)
-  const [negoInboxStatus, setNegoInboxStatus] = useState("")
-  const [negoInboxComplete, setNegoInboxComplete] = useState(false)
-  const negoTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  // Negotiation state — manual trigger, 3 steps, manual return
+  const [negoPhase, setNegoPhase] = useState<"idle" | "running" | "complete">("idle")
+  const [negoStep, setNegoStep] = useState(0) // 0=not started, 1-3=steps, 4=done
 
-  useEffect(() => {
-    if (!selected?.id.includes("-RM-") || !selected?.id.startsWith("DEMO-INBOX-")) return
-    if (negoInboxActive || negoInboxComplete) return
-    setNegoInboxActive(true)
-    const statuses = [
-      "Connecting to Maersk rate desk...",
-      "Validating counter-offer against market data...",
-      "Carrier reviewing proposal...",
-      "Rate accepted — updating booking parameters...",
-    ]
-    const timers: ReturnType<typeof setTimeout>[] = []
-    statuses.forEach((status, i) => {
-      timers.push(setTimeout(() => { setNegoInboxProgress((i + 1) * 25); setNegoInboxStatus(status) }, i * 1200))
-    })
-    timers.push(setTimeout(() => { setNegoInboxComplete(true); setNegoInboxStatus("Negotiation complete — rate locked in") }, statuses.length * 1200))
-    timers.push(setTimeout(() => { onReturnToFlow?.() }, statuses.length * 1200 + 2000))
-    negoTimersRef.current = timers
-    return () => timers.forEach(clearTimeout)
-  }, [selected?.id])
+  const NEGO_STEPS = [
+    { label: "Validating counter-offer against contract CTR-2024-001...", detail: "Checking $3,024 vs contract ceiling $2,800 — within 8% market adjustment tolerance" },
+    { label: "Cross-referencing 30-day spot market data (SHA→LAX)...", detail: "Market avg: $3,480 — counter-offer is 13% below market, strong negotiation position" },
+    { label: "Submitting rate lock request to Maersk booking system...", detail: "Rate $3,024/container confirmed and locked for 7 business days" },
+  ]
+
+  const startNegotiation = () => {
+    setNegoPhase("running")
+    setNegoStep(1)
+    let step = 1
+    const interval = setInterval(() => {
+      step++
+      if (step <= 3) {
+        setNegoStep(step)
+      } else {
+        clearInterval(interval)
+        setNegoStep(4)
+        setNegoPhase("complete")
+      }
+    }, 1500)
+  }
 
   const openAttachmentPdf = (filename: string) => {
     const ref = filename.replace(/\.pdf$/, "")
@@ -464,49 +463,88 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
                 {selected.body}
               </pre>
 
-              {/* Rate negotiation spinner */}
+              {/* Rate negotiation — manual trigger */}
               {isDemoReply && selected.id.includes("-RM-") && (
                 <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                  <div className="p-4 bg-[#0f1623] rounded-xl border border-slate-700">
-                    <div className="flex items-center gap-2 mb-3">
-                      {negoInboxComplete ? <CheckCircle size={16} className="text-emerald-400" /> : <Brain size={16} className="text-violet-400 animate-pulse" />}
-                      <span className="text-[13px] font-bold text-white">{negoInboxComplete ? "Negotiation Complete" : "AI Negotiating Rate"}</span>
-                    </div>
-                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden mb-2">
-                      <div className={cn("h-full rounded-full transition-all duration-700 ease-out", negoInboxComplete ? "bg-emerald-500" : "bg-violet-500")} style={{ width: `${negoInboxProgress}%` }} />
-                    </div>
-                    <div className="text-[11px] text-slate-400 mb-3">{negoInboxStatus || "Initializing..."}</div>
-                    {negoInboxComplete && (
-                      <div className="space-y-1.5 animate-in fade-in duration-300">
-                        {[
-                          { label: "Market Rate (30d avg)", value: "$3,480", badge: "Benchmark", color: "text-slate-300" },
-                          { label: "Carrier Quote", value: "$3,340", badge: "-4% vs market", color: "text-amber-300" },
-                          { label: "Counter-Offer", value: "$3,024", badge: "Sent", color: "text-violet-300" },
-                          { label: "Carrier Accepted", value: "$3,024", badge: "Accepted", color: "text-emerald-300" },
-                        ].map((r, idx) => (
-                          <div key={idx} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-slate-800/50">
-                            <div className="flex items-center gap-2">
-                              {r.badge === "Accepted" ? <CheckCircle size={12} className="text-emerald-400" /> : <div className="w-3 h-3 rounded-full border border-slate-600" />}
-                              <span className={cn("text-[11px] font-medium", r.color)}>{r.label}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[12px] font-bold text-white">{r.value}</span>
-                              <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full font-semibold",
-                                r.badge === "Accepted" ? "bg-emerald-900/50 text-emerald-300" : r.badge === "Sent" ? "bg-violet-900/50 text-violet-300" : "bg-slate-700 text-slate-400"
-                              )}>{r.badge}</span>
-                            </div>
-                          </div>
-                        ))}
-                        <div className="mt-2 px-2 py-1.5 bg-emerald-900/30 rounded-lg border border-emerald-800/50">
-                          <span className="text-[11px] text-emerald-300 font-medium">Savings: <span className="font-bold">$316/container</span> ($632 total)</span>
-                        </div>
+                  {/* Start button — only when idle */}
+                  {negoPhase === "idle" && (
+                    <button
+                      onClick={startNegotiation}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#0000B3] text-white text-[13px] font-semibold rounded-xl hover:bg-[#00009A] transition-colors"
+                    >
+                      <Brain size={15} /> Start Rate Negotiation
+                    </button>
+                  )}
+
+                  {/* Negotiation steps — running or complete */}
+                  {negoPhase !== "idle" && (
+                    <div className="p-4 bg-[#0f1623] rounded-xl border border-slate-700">
+                      <div className="flex items-center gap-2 mb-4">
+                        {negoPhase === "complete" ? <CheckCircle size={16} className="text-blue-400" /> : <Brain size={16} className="text-blue-400 animate-pulse" />}
+                        <span className="text-[13px] font-bold text-white">{negoPhase === "complete" ? "Negotiation Complete" : "AI Negotiating Rate"}</span>
                       </div>
-                    )}
-                  </div>
-                  {negoInboxComplete && (
-                    <div className="flex items-center gap-2 justify-center py-1 text-[11px] text-emerald-600 font-medium animate-pulse">
-                      <Loader2 size={12} className="animate-spin" /> Returning to booking flow...
+
+                      {/* 3 step indicators */}
+                      <div className="space-y-3 mb-4">
+                        {NEGO_STEPS.map((step, i) => {
+                          const isDone = negoStep > i + 1
+                          const isActive = negoStep === i + 1
+                          return (
+                            <div key={i} className={cn("p-3 rounded-lg border transition-all duration-500",
+                              isDone ? "bg-blue-950/50 border-blue-800" : isActive ? "bg-slate-800 border-blue-600" : "bg-slate-900/50 border-slate-800 opacity-40"
+                            )}>
+                              <div className="flex items-center gap-2 mb-1">
+                                {isDone ? <CheckCircle2 size={13} className="text-blue-400 shrink-0" /> :
+                                 isActive ? <Loader2 size={13} className="text-blue-400 animate-spin shrink-0" /> :
+                                 <div className="w-[13px] h-[13px] rounded-full border border-slate-600 shrink-0" />}
+                                <span className={cn("text-[11px] font-semibold", isDone || isActive ? "text-white" : "text-slate-500")}>{step.label}</span>
+                              </div>
+                              {(isDone || isActive) && (
+                                <p className="text-[10px] text-slate-400 ml-5">{step.detail}</p>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      {/* Results — only when complete */}
+                      {negoPhase === "complete" && (
+                        <div className="space-y-1.5 animate-in fade-in duration-300">
+                          {[
+                            { label: "Market Rate (30d avg)", value: "$3,480", badge: "Benchmark", color: "text-slate-300" },
+                            { label: "Carrier Quote", value: "$3,340", badge: "-4% vs market", color: "text-amber-300" },
+                            { label: "Counter-Offer", value: "$3,024", badge: "Sent", color: "text-blue-300" },
+                            { label: "Carrier Accepted", value: "$3,024", badge: "Locked", color: "text-blue-300" },
+                          ].map((r, idx) => (
+                            <div key={idx} className="flex items-center justify-between py-1.5 px-2 rounded-lg bg-slate-800/50">
+                              <div className="flex items-center gap-2">
+                                {r.badge === "Locked" ? <CheckCircle size={12} className="text-blue-400" /> : <div className="w-3 h-3 rounded-full border border-slate-600" />}
+                                <span className={cn("text-[11px] font-medium", r.color)}>{r.label}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[12px] font-bold text-white">{r.value}</span>
+                                <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full font-semibold",
+                                  r.badge === "Locked" ? "bg-blue-900/50 text-blue-300" : r.badge === "Sent" ? "bg-blue-900/50 text-blue-300" : "bg-slate-700 text-slate-400"
+                                )}>{r.badge}</span>
+                              </div>
+                            </div>
+                          ))}
+                          <div className="mt-2 px-2 py-1.5 bg-blue-900/30 rounded-lg border border-blue-800/50">
+                            <span className="text-[11px] text-blue-300 font-medium">Savings: <span className="font-bold">$316/container</span> ($632 total for 2×40' HC)</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                  )}
+
+                  {/* Return button — only when complete, manual click */}
+                  {negoPhase === "complete" && (
+                    <button
+                      onClick={onReturnToFlow}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <ArrowRight size={14} /> Return to Booking Flow
+                    </button>
                   )}
                 </div>
               )}
