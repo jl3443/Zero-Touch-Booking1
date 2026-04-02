@@ -8,6 +8,7 @@ import {
   EXCEPTION_TREND,
   AGENT_HANDLING,
   EXCEPTION_SLA,
+  RESULTS_DELIVERED,
 } from "@/lib/mock-data"
 import { AgentActivityLog } from "./agent-activity-log"
 import { cn } from "@/lib/utils"
@@ -338,6 +339,43 @@ export function AnalyticsPage({ etaUpdatedCount = 3 }: { etaUpdatedCount?: numbe
                 Estimated <strong>~4.2 hours of coordinator time saved</strong> based on manual baseline (5.6h) vs. agent-assisted (1.4h).
               </p>
             )}
+          </div>
+        </motion.div>
+
+        {/* Results Delivered — Before vs After */}
+        <motion.div variants={fadeUp} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 bg-indigo-50 border-b border-indigo-100">
+            <TrendingUp size={14} className="text-indigo-600" />
+            <span className="text-[10px] font-semibold text-indigo-700 uppercase tracking-wider">Results Delivered — Before vs After Automation</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Metric</th>
+                  <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Before</th>
+                  <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">After</th>
+                  <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Improvement</th>
+                </tr>
+              </thead>
+              <tbody>
+                {RESULTS_DELIVERED.map((row) => (
+                  <tr key={row.metric} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="px-4 py-2.5 font-medium text-gray-800">{row.metric}</td>
+                    <td className="px-4 py-2.5 text-center text-gray-500">{row.before}</td>
+                    <td className="px-4 py-2.5 text-center font-semibold text-gray-800">{row.after}</td>
+                    <td className="px-4 py-2.5 text-center">
+                      <span className={cn(
+                        "inline-flex items-center gap-0.5 font-semibold",
+                        row.direction === "up" ? "text-green-600" : "text-green-600"
+                      )}>
+                        {row.direction === "up" ? "↑" : "↓"} {row.improvement}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </motion.div>
 

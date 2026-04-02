@@ -10,6 +10,7 @@ import {
   HARD_CONSTRAINTS,
   AI_POLICY_RECOMMENDATIONS,
   CONTRACT_COMPLIANCE_RULES,
+  SLA_RULES,
 } from "@/lib/mock-data"
 import { SeverityBadge, ModeIcon } from "./shared"
 import {
@@ -485,7 +486,57 @@ export function AutomationRulesPage() {
               </div>
             </div>
 
-            {/* ── Section 6: AI Policy Recommendations ─────────────────────── */}
+            {/* ── Section 6: SLA Targets ───────────────────────────────── */}
+            <div className="bg-white rounded-xl border border-gray-200">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                <Activity size={14} className="text-blue-600" />
+                <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">SLA Targets</span>
+                <span className="ml-auto text-[10px] text-gray-400">
+                  {SLA_RULES.filter(r => r.enabled).length} of {SLA_RULES.length} monitored
+                </span>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {SLA_RULES.map((rule) => {
+                  const meets = rule.direction === "min"
+                    ? rule.numericCurrent <= rule.numericTarget
+                    : rule.numericCurrent >= rule.numericTarget
+                  const nearMiss = rule.direction === "min"
+                    ? rule.numericCurrent <= rule.numericTarget * 1.15
+                    : rule.numericCurrent >= rule.numericTarget * 0.9
+                  const statusColor = meets ? "text-green-600 bg-green-50" : nearMiss ? "text-amber-600 bg-amber-50" : "text-red-600 bg-red-50"
+                  const statusLabel = meets ? "On Target" : nearMiss ? "Near Miss" : "Below Target"
+                  return (
+                    <div key={rule.id} className="flex items-center gap-3 px-4 py-3.5">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs font-semibold text-gray-800">{rule.name}</span>
+                          <span className="text-[9px] font-mono text-gray-400">{rule.id}</span>
+                          <span className={cn("text-[9px] font-semibold px-1.5 py-0.5 rounded-full", statusColor)}>{statusLabel}</span>
+                        </div>
+                        <p className="text-[10px] text-gray-500">{rule.description}</p>
+                        <div className="flex items-center gap-4 mt-1.5">
+                          <span className="text-[10px] text-gray-500">Target: <span className="font-semibold text-gray-700">{rule.target}</span></span>
+                          <span className="text-[10px] text-gray-500">Current: <span className={cn("font-semibold", meets ? "text-green-700" : "text-amber-700")}>{rule.currentValue}</span></span>
+                        </div>
+                      </div>
+                      <button
+                        className={cn(
+                          "relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0",
+                          rule.enabled ? "bg-blue-600" : "bg-gray-300"
+                        )}
+                      >
+                        <span className={cn(
+                          "inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform shadow-sm",
+                          rule.enabled ? "translate-x-[18px]" : "translate-x-[3px]"
+                        )} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* ── Section 7: AI Policy Recommendations ─────────────────────── */}
             <div className="bg-white rounded-xl border border-gray-200">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
                 <Sparkles size={14} className="text-violet-600" />

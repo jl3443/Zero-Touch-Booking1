@@ -205,6 +205,27 @@ export function Dashboard({ searchQuery, onViewChange, onOpenWeather, onSendNoti
         {/* ── 2. KPI Row (5-col, PO Orchestrator pattern) ──────────────── */}
         <KpiRow bookingsCount={BOOKING_REQUESTS.length} exceptionsCount={exceptionsCount} zeroTouchRate={zeroTouchRate} />
 
+        {/* ── 2b. SLA Compliance Strip ───────────────────────────────── */}
+        <div className="flex items-center gap-3 px-1">
+          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider shrink-0">SLA</span>
+          {[
+            { label: "Contracted Lane Util", value: "89%", target: 92, current: 89 },
+            { label: "Spot Buy Ratio", value: "4.2%", target: 6, current: 4.2, invert: true },
+            { label: "OTD", value: "92%", target: 95, current: 92 },
+          ].map((sla) => {
+            const meets = sla.invert ? sla.current <= sla.target : sla.current >= sla.target
+            const near = sla.invert ? sla.current <= sla.target * 1.2 : sla.current >= sla.target * 0.9
+            return (
+              <div key={sla.label} className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1">
+                <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", meets ? "bg-green-500" : near ? "bg-amber-500" : "bg-red-500")} />
+                <span className="text-[10px] text-gray-500">{sla.label}:</span>
+                <span className={cn("text-[10px] font-bold", meets ? "text-green-700" : near ? "text-amber-700" : "text-red-700")}>{sla.value}</span>
+                <span className="text-[9px] text-gray-400">(target {sla.invert ? "≤" : "≥"}{sla.target}%)</span>
+              </div>
+            )
+          })}
+        </div>
+
         {/* ── 3. Charts Row: Funnel + Exception Donut + Rate Variance ── */}
         <motion.div
           className="grid grid-cols-3 gap-4"

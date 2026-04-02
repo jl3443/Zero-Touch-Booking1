@@ -2108,6 +2108,40 @@ export const AUTO_APPROVAL_THRESHOLDS = [
   { rule: "No hazardous / restricted cargo flags", threshold: "None flagged", currentValue: "Clean", enabled: false },
 ]
 
+// ── SLA Rules (from TCS operational KPIs) ────────────────────────────────
+export interface SlaRule {
+  id: string
+  name: string
+  description: string
+  target: string
+  currentValue: string
+  numericCurrent: number
+  numericTarget: number
+  unit: string
+  direction: "max" | "min" // "max" = higher is better, "min" = lower is better
+  category: "cost" | "performance" | "compliance" | "volume" | "sourcing"
+  enabled: boolean
+}
+
+export const SLA_RULES: SlaRule[] = [
+  { id: "SLA-01", name: "Spot Buy Ratio", description: "Spend through spot buy vs contracted lanes", target: "≤ 6%", currentValue: "4.2%", numericCurrent: 4.2, numericTarget: 6, unit: "%", direction: "min", category: "cost", enabled: true },
+  { id: "SLA-02", name: "On-Time Delivery", description: "Shipments delivered by target date", target: "≥ 95%", currentValue: "92%", numericCurrent: 92, numericTarget: 95, unit: "%", direction: "max", category: "performance", enabled: true },
+  { id: "SLA-03", name: "Data Entry Compliance", description: "System record updated within 24h of receipt", target: "≤ 24h", currentValue: "98%", numericCurrent: 98, numericTarget: 100, unit: "%", direction: "max", category: "compliance", enabled: true },
+  { id: "SLA-04", name: "Critical Shipment SLA", description: "Critical shipments processed within 4 hours", target: "≤ 4h", currentValue: "3.2h", numericCurrent: 3.2, numericTarget: 4, unit: "h", direction: "min", category: "performance", enabled: true },
+  { id: "SLA-05", name: "Contracted Lane Utilization", description: "Bookings using contracted vs spot carriers", target: "≥ 92%", currentValue: "89%", numericCurrent: 89, numericTarget: 92, unit: "%", direction: "max", category: "volume", enabled: true },
+  { id: "SLA-06", name: "RFQ Completion Time", description: "Complete RFQs within target business days", target: "≤ 5 days", currentValue: "3.8 days", numericCurrent: 3.8, numericTarget: 5, unit: "days", direction: "min", category: "sourcing", enabled: true },
+]
+
+// ── Results Delivered (Before/After metrics) ─────────────────────────────
+export const RESULTS_DELIVERED = [
+  { metric: "Contracted Lane Usage", before: "78%", after: "95%+", improvement: "+17%", direction: "up" as const },
+  { metric: "Governance Accuracy", before: "<80%", after: "92%+", improvement: "+12%", direction: "up" as const },
+  { metric: "On-Time Delivery", before: "70%", after: "95%", improvement: "+25%", direction: "up" as const },
+  { metric: "Spot Buy Ratio", before: "22%", after: "4.2%", improvement: "-18%", direction: "down" as const },
+  { metric: "Automation", before: "0", after: "5+ implemented", improvement: "Digitally Enabled", direction: "up" as const },
+  { metric: "Documentation Compliance", before: "SOPs not updated", after: "100% weekly", improvement: "Fully Compliant", direction: "up" as const },
+]
+
 export type TransportMode = "Ocean" | "Air" | "Road"
 
 export const LANE_PREFERENCES = [
