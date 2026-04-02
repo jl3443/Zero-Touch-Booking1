@@ -1621,12 +1621,21 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
   }
 
   const handleConfirmSwitch = () => {
-    // Navigate to Portal Status page to show backup connection being established
-    setShowModal(false)
-    onNavigateView?.("weather-traffic-backup")
-    // The portal status page will show the backup card, wait 2s, then call onBackupConnectionDone
-    // which navigates back to dashboard — at that point we resolve the exception
-    setTimeout(() => onResolve(), 3000)
+    // Show failover sequence inline, then resolve
+    setPhase("resolving")
+    // Auto-step through 4 failover steps
+    let step = 0
+    const stepInterval = setInterval(() => {
+      step++
+      setAutoStep(step)
+      if (step >= 4) {
+        clearInterval(stepInterval)
+        setTimeout(() => {
+          setPhase("resolved")
+          setTimeout(() => { setShowModal(false); onResolve() }, 1200)
+        }, 800)
+      }
+    }, 900)
   }
 
   // ─── Scenario 4: Rate Mismatch → email compose → negotiation spinner ──
@@ -1868,7 +1877,7 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 text-center">
           <div className="p-2 bg-white rounded border border-blue-200"><span className="text-[10px] text-gray-400">Current</span><div className="text-[12px] font-bold text-red-600">Maersk Portal ✕</div></div>
-          <div className="p-2 bg-white rounded border border-blue-200"><span className="text-[10px] text-gray-400">Backup</span><div className="text-[12px] font-bold text-emerald-600">INTTRA EDI ✓</div></div>
+          <div className="p-2 bg-white rounded border border-blue-200"><span className="text-[10px] text-gray-400">Backup</span><div className="text-[12px] font-bold text-blue-600">INTTRA EDI ✓</div></div>
         </div>
       </div>
     </div>
@@ -1951,10 +1960,10 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
         </div>
         {phase === "carrier-select" && carrierSelectContent}
         {phase === "resolved" && (
-          <div className="bg-emerald-50 rounded-lg px-4 py-3 border border-emerald-200 animate-in fade-in duration-300">
+          <div className="bg-blue-50 rounded-lg px-4 py-3 border border-blue-200 animate-in fade-in duration-300">
             <div className="flex items-center gap-2">
-              <CheckCircle size={16} className="text-emerald-600" />
-              <span className="text-[12px] font-bold text-emerald-700">Rerouted via {selectedAltCarrier}. Booking submitted.</span>
+              <CheckCircle size={16} className="text-blue-600" />
+              <span className="text-[12px] font-bold text-blue-700">Rerouted via {selectedAltCarrier}. Booking submitted.</span>
             </div>
           </div>
         )}
@@ -1965,10 +1974,10 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
         <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Portal Health Dashboard</div>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { portal: "Maersk Portal", status: "Offline", detail: "HTTP 503 · 14:23 UTC", color: "bg-red-100 text-red-700 border-red-200" },
-            { portal: "MSC Portal", status: "Online", detail: "99.8% · Healthy", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-            { portal: "CMA-CGM Portal", status: "Online", detail: "99.2% · Healthy", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-            { portal: "Hapag-Lloyd Portal", status: "Degraded", detail: "94.1% · Slow response", color: "bg-amber-100 text-amber-700 border-amber-200" },
+            { portal: "Maersk Portal", status: "Offline", detail: "HTTP 503 · 14:23 UTC", color: "bg-red-50 text-red-700 border-red-200" },
+            { portal: "MSC Portal", status: "Online", detail: "99.8% · Healthy", color: "bg-blue-50 text-blue-700 border-blue-200" },
+            { portal: "CMA-CGM Portal", status: "Online", detail: "99.2% · Healthy", color: "bg-blue-50 text-blue-700 border-blue-200" },
+            { portal: "Hapag-Lloyd Portal", status: "Degraded", detail: "94.1% · Slow response", color: "bg-amber-50 text-amber-700 border-amber-200" },
           ].map((p) => (
             <div key={p.portal} className={cn("p-2.5 rounded-lg border", p.color)}>
               <div className="text-[11px] font-bold">{p.portal}</div>
@@ -1983,12 +1992,12 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
             <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">AI Failover Sequence</div>
             {["Detecting outage scope — 47 shippers affected", "Switching to INTTRA EDI channel", "Resubmitting booking via EDI", "Confirmed — INTTRA-88421"].map((step, idx) => (
               <div key={idx} className={cn("flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-300",
-                autoStep > idx ? "bg-emerald-50 border-emerald-200" : autoStep === idx ? "bg-blue-50 border-blue-200 animate-pulse" : "bg-gray-50 border-gray-100"
+                autoStep > idx ? "bg-blue-50 border-blue-200" : autoStep === idx ? "bg-blue-50 border-blue-300 animate-pulse" : "bg-gray-50 border-gray-100"
               )}>
-                {autoStep > idx ? <CheckCircle size={14} className="text-emerald-600 shrink-0" /> :
+                {autoStep > idx ? <CheckCircle size={14} className="text-blue-600 shrink-0" /> :
                  autoStep === idx ? <Loader2 size={14} className="text-blue-500 animate-spin shrink-0" /> :
                  <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 shrink-0" />}
-                <span className={cn("text-[12px] font-medium", autoStep > idx ? "text-emerald-700" : autoStep === idx ? "text-blue-700" : "text-gray-400")}>{step}</span>
+                <span className={cn("text-[12px] font-medium", autoStep > idx ? "text-blue-700" : autoStep === idx ? "text-blue-700" : "text-gray-400")}>{step}</span>
               </div>
             ))}
           </div>
@@ -2065,10 +2074,10 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
         </div>
         {phase === "carrier-select" && carrierSelectContent}
         {phase === "resolved" && (
-          <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 animate-in fade-in duration-300">
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 animate-in fade-in duration-300">
             <div className="flex items-center gap-2">
-              <CheckCircle size={14} className="text-emerald-600" />
-              <span className="text-[12px] font-bold text-emerald-700">Re-booked with {selectedAltCarrier || "MSC"}</span>
+              <CheckCircle size={14} className="text-blue-600" />
+              <span className="text-[12px] font-bold text-blue-700">Re-booked with {selectedAltCarrier || "MSC"}</span>
             </div>
           </div>
         )}
@@ -2081,8 +2090,8 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
     if (phase === "resolved") {
       return (
         <div className="flex items-center gap-2 justify-center py-1">
-          <CheckCircle size={14} className="text-emerald-600" />
-          <span className="text-[12px] font-semibold text-emerald-600">Exception resolved — continuing booking flow</span>
+          <CheckCircle size={14} className="text-blue-600" />
+          <span className="text-[12px] font-semibold text-blue-600">Exception resolved — continuing booking flow</span>
         </div>
       )
     }
