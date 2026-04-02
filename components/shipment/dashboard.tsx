@@ -124,8 +124,12 @@ export function Dashboard({ searchQuery, onViewChange, onOpenWeather, onSendNoti
   // Auto-restore booking drawer when returning to dashboard during active demo
   useEffect(() => {
     if (demoActive && (demoStep ?? 0) > 0 && !bookingMode) {
-      setSelectedShipment(DEMO_SHIPMENT)
-      setBookingMode(true)
+      // Small delay to ensure component is fully mounted
+      const t = setTimeout(() => {
+        setSelectedShipment(DEMO_SHIPMENT)
+        setBookingMode(true)
+      }, 50)
+      return () => clearTimeout(t)
     }
   }, [demoActive, demoStep, demoReturnedFromInbox])
 
