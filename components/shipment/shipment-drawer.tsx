@@ -1638,6 +1638,14 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
     }, 900)
   }
 
+  // Auto-start rate-mismatch flow (skip "showing" phase, go straight to email compose)
+  useEffect(() => {
+    if (scenarioId === "rate-mismatch" && phase === "showing") {
+      const t = setTimeout(() => handleResolveRateMismatch(), 2000)
+      return () => clearTimeout(t)
+    }
+  }, [scenarioId, phase])
+
   // ─── Scenario 4: Rate Mismatch → email compose → negotiation spinner ──
   const handleResolveRateMismatch = () => {
     setPhase("email-compose")
