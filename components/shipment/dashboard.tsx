@@ -87,7 +87,7 @@ const rateVariance = CARRIER_SCORECARDS.map((c) => {
 
 // ── Portal health status colors ─────────────────────────────────────────────
 const PORTAL_DOT: Record<string, string> = {
-  Online: "bg-green-500",
+  Online: "bg-sky-500",
   Degraded: "bg-amber-500 animate-pulse",
   Offline: "bg-red-500",
 }
@@ -217,9 +217,9 @@ export function Dashboard({ searchQuery, onViewChange, onOpenWeather, onSendNoti
             const near = sla.invert ? sla.current <= sla.target * 1.2 : sla.current >= sla.target * 0.9
             return (
               <div key={sla.label} className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1">
-                <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", meets ? "bg-green-500" : near ? "bg-amber-500" : "bg-red-500")} />
+                <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", meets ? "bg-sky-500" : near ? "bg-amber-500" : "bg-red-500")} />
                 <span className="text-[10px] text-gray-500">{sla.label}:</span>
-                <span className={cn("text-[10px] font-bold", meets ? "text-green-700" : near ? "text-amber-700" : "text-red-700")}>{sla.value}</span>
+                <span className={cn("text-[10px] font-bold", meets ? "text-sky-700" : near ? "text-amber-700" : "text-red-700")}>{sla.value}</span>
                 <span className="text-[9px] text-gray-400">(target {sla.invert ? "≤" : "≥"}{sla.target}%)</span>
               </div>
             )
@@ -497,7 +497,7 @@ function AiHeroCard({ analysisThinking, bookingsCount, exceptionsCount, zeroTouc
   const chipColors: Record<string, string> = {
     critical: "bg-red-500/20 text-red-300 ring-red-400/20",
     warning: "bg-amber-500/20 text-amber-300 ring-amber-400/20",
-    positive: "bg-green-500/20 text-green-300 ring-green-400/20",
+    positive: "bg-sky-500/20 text-sky-300 ring-sky-400/20",
   }
 
   return (
@@ -624,7 +624,7 @@ function KpiRow({ bookingsCount, exceptionsCount, zeroTouchRate }: {
             <p className="mt-0.5 text-xl font-bold text-slate-900 tabular-nums">{bookingsCount}</p>
             <div className="mt-1 flex items-center gap-2 text-[10px]">
               <span className="flex items-center gap-0.5 text-amber-600"><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />{Math.round(bookingsCount * 0.4)} active</span>
-              <span className="flex items-center gap-0.5 text-green-600"><span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />{Math.round(bookingsCount * 0.45)} done</span>
+              <span className="flex items-center gap-0.5 text-sky-600"><span className="inline-block h-1.5 w-1.5 rounded-full bg-sky-500" />{Math.round(bookingsCount * 0.45)} done</span>
             </div>
           </div>
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-100">
@@ -642,8 +642,8 @@ function KpiRow({ bookingsCount, exceptionsCount, zeroTouchRate }: {
             </p>
             <p className="mt-0.5 text-xl font-bold text-slate-900 tabular-nums">{Math.round(bookingsCount * 0.65)}</p>
             <div className="mt-1 flex items-center gap-1">
-              <TrendingUp size={12} className="text-green-600" />
-              <span className="text-[10px] font-medium text-green-600">+8 this week</span>
+              <TrendingUp size={12} className="text-sky-600" />
+              <span className="text-[10px] font-medium text-sky-600">+8 this week</span>
             </div>
           </div>
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-100">
@@ -661,8 +661,8 @@ function KpiRow({ bookingsCount, exceptionsCount, zeroTouchRate }: {
             </p>
             <p className="mt-0.5 text-xl font-bold text-slate-900 tabular-nums">4.2m</p>
             <div className="mt-1 flex items-center gap-1">
-              <TrendingDown size={12} className="text-green-600" />
-              <span className="text-[10px] font-medium text-green-600">-12min vs manual</span>
+              <TrendingDown size={12} className="text-sky-600" />
+              <span className="text-[10px] font-medium text-sky-600">-12min vs manual</span>
             </div>
           </div>
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-100">
@@ -680,8 +680,8 @@ function KpiRow({ bookingsCount, exceptionsCount, zeroTouchRate }: {
             </p>
             <p className="mt-0.5 text-xl font-bold text-slate-900 tabular-nums">{zeroTouchRate}%</p>
             <div className="mt-1 flex items-center gap-1">
-              <TrendingUp size={12} className="text-green-600" />
-              <span className="text-[10px] font-medium text-green-600">+3.2% this month</span>
+              <TrendingUp size={12} className="text-sky-600" />
+              <span className="text-[10px] font-medium text-sky-600">+3.2% this month</span>
             </div>
           </div>
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-100">
@@ -699,8 +699,8 @@ function KpiRow({ bookingsCount, exceptionsCount, zeroTouchRate }: {
             </p>
             <p className="mt-0.5 text-xl font-bold text-slate-900 tabular-nums">{bookingsCount > 0 ? Math.round((exceptionsCount / bookingsCount) * 100) : 0}%</p>
             <div className="mt-1 flex items-center gap-1">
-              <TrendingDown size={12} className="text-green-600" />
-              <span className="text-[10px] font-medium text-green-600">-1.4% this week</span>
+              <TrendingDown size={12} className="text-sky-600" />
+              <span className="text-[10px] font-medium text-sky-600">-1.4% this week</span>
             </div>
           </div>
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-100">

@@ -1843,7 +1843,7 @@ export const BOOKING_FUNNEL_EXTENDED = [
   { stage: "Carrier Selected", count: 12, color: "#0000B3" },
   { stage: "Portal Login", count: 10, color: "#0000B3" },
   { stage: "Submitted", count: 8, color: "#0000B3" },
-  { stage: "Confirmed", count: 6, color: "#22C55E" },
+  { stage: "Confirmed", count: 6, color: "#38BDF8" },
   { stage: "Exception", count: 6, color: "#EF4444" },
 ]
 
