@@ -280,10 +280,10 @@ export function Dashboard({ searchQuery, onViewChange, onOpenWeather, onSendNoti
             onClick={() => onViewChange?.("exceptions")}
             title="Click to open Exception Workbench"
           >
-            <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border-b border-red-100">
-              <AlertTriangle size={13} className="text-red-600 shrink-0" />
-              <span className="text-[10px] font-semibold text-red-700 uppercase tracking-wider whitespace-nowrap">Exception Distribution</span>
-              <span className="ml-auto rounded-full bg-red-100 border border-red-200 px-1.5 py-0.5 text-[9px] font-bold text-red-700">{exceptionData.reduce((sum, e) => sum + e.count, 0)}</span>
+            <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 border-b border-indigo-100">
+              <AlertTriangle size={13} className="text-indigo-600 shrink-0" />
+              <span className="text-[10px] font-semibold text-indigo-700 uppercase tracking-wider whitespace-nowrap">Exception Distribution</span>
+              <span className="ml-auto rounded-full bg-indigo-100 border border-indigo-200 px-1.5 py-0.5 text-[9px] font-bold text-indigo-700">{exceptionData.reduce((sum, e) => sum + e.count, 0)}</span>
             </div>
             <div className="flex items-center gap-3 p-3 flex-1">
               {/* Donut */}
@@ -327,9 +327,12 @@ export function Dashboard({ searchQuery, onViewChange, onOpenWeather, onSendNoti
           {/* Contract vs Spot Rate Variance */}
           <motion.div
             variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } }}
-            className="bg-white rounded-lg border border-gray-200 p-3"
+            className="bg-white rounded-lg border border-gray-200 overflow-hidden"
           >
-            <h3 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2 whitespace-nowrap">Rate Variance ($)</h3>
+            <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 border-b border-indigo-100">
+              <span className="text-[10px] font-semibold text-indigo-700 uppercase tracking-wider whitespace-nowrap">Rate Variance ($)</span>
+            </div>
+            <div className="p-3">
             <ResponsiveContainer width="100%" height={170}>
               <BarChart data={rateVariance} margin={{ left: 0, right: 8 }}>
                 <XAxis dataKey="carrier" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} />
@@ -346,6 +349,7 @@ export function Dashboard({ searchQuery, onViewChange, onOpenWeather, onSendNoti
             <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-500">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-blue-500 inline-block" /> Contract</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-500 inline-block" /> Spot</span>
+            </div>
             </div>
           </motion.div>
         </motion.div>

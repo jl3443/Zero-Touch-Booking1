@@ -73,13 +73,13 @@ export function BookingStatusBadge({ status }: { status: BookingStatus }) {
 export function CarrierBadge({ carrier }: { carrier: string }) {
   const map: Record<string, string> = {
     "Maersk": "bg-[#0000B3] text-white",
-    "MSC": "bg-[#1A1ACD] text-white",
-    "Hapag-Lloyd": "bg-[#3333E0] text-white",
-    "CMA-CGM": "bg-[#4D4DF0] text-white",
-    "FedEx Freight": "bg-[#6666F5] text-white",
-    "DHL Freight": "bg-[#8080F8] text-white",
-    "XPO Logistics": "bg-[#9999FA] text-white",
-    "J.B. Hunt": "bg-[#B3B3FC] text-gray-900",
+    "MSC": "bg-[#0000B3] text-white",
+    "Hapag-Lloyd": "bg-[#0000B3] text-white",
+    "CMA-CGM": "bg-[#0000B3] text-white",
+    "FedEx Freight": "bg-[#0000B3] text-white",
+    "DHL Freight": "bg-[#0000B3] text-white",
+    "XPO Logistics": "bg-[#0000B3] text-white",
+    "J.B. Hunt": "bg-[#0000B3] text-white",
   }
   return (
     <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide", map[carrier] ?? "bg-gray-200 text-gray-700")}>
@@ -92,10 +92,10 @@ export function CarrierBadge({ carrier }: { carrier: string }) {
 export function ExceptionBadge({ type }: { type: BookingExceptionType }) {
   const map: Record<BookingExceptionType, string> = {
     "Missing Allocation": "bg-amber-50 text-amber-700 border-amber-200",
-    "Portal Unavailable": "bg-blue-50 text-blue-700 border-blue-200",
+    "Portal Unavailable": "bg-amber-50 text-amber-700 border-amber-200",
     "Rate Mismatch": "bg-amber-50 text-amber-700 border-amber-200",
-    "Missing Booking Fields": "bg-blue-50 text-blue-700 border-blue-200",
-    "Carrier Rejection": "bg-red-50 text-red-700 border-red-200",
+    "Missing Booking Fields": "bg-amber-50 text-amber-700 border-amber-200",
+    "Carrier Rejection": "bg-amber-50 text-amber-700 border-amber-200",
     "Credentials Expired": "bg-gray-100 text-gray-600 border-gray-300",
     "None": "bg-blue-50 text-blue-600 border-blue-200",
   }

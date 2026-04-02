@@ -1839,10 +1839,10 @@ export const SUGGESTED_BOOKINGS = [
 // Extended booking funnel with more granular stages
 export const BOOKING_FUNNEL_EXTENDED = [
   { stage: "SAP Ingested", count: 14, color: "#0000B3" },
-  { stage: "Validated", count: 13, color: "#1A1ACD" },
-  { stage: "Carrier Selected", count: 12, color: "#3333E0" },
-  { stage: "Portal Login", count: 10, color: "#4D4DF0" },
-  { stage: "Submitted", count: 8, color: "#6666F5" },
+  { stage: "Validated", count: 13, color: "#0000B3" },
+  { stage: "Carrier Selected", count: 12, color: "#0000B3" },
+  { stage: "Portal Login", count: 10, color: "#0000B3" },
+  { stage: "Submitted", count: 8, color: "#0000B3" },
   { stage: "Confirmed", count: 6, color: "#22C55E" },
   { stage: "Exception", count: 6, color: "#EF4444" },
 ]
