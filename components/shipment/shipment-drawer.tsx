@@ -1523,7 +1523,9 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
   // When user returns from inbox after reading reply email
   useEffect(() => {
     if (!returnedFromInbox) return
-    onReturnedFromInboxConsumed?.()
+
+    // Delay consume so parent effects can also see the flag
+    const consumeTimer = setTimeout(() => onReturnedFromInboxConsumed?.(), 100)
 
     if (scenarioId === "rate-mismatch") {
       // Show negotiation results — wait for user to click "Continue Booking"
@@ -1544,6 +1546,7 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
         setTimeout(() => { setShowModal(false); onResolve() }, 1000)
       }, 2000)
     }
+    return () => clearTimeout(consumeTimer)
   }, [returnedFromInbox])
 
   if (!resolution) return null
