@@ -1517,6 +1517,9 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
   const [negoComplete, setNegoComplete] = useState(false)
   // Email compose
   const [emailBody, setEmailBody] = useState("")
+  // New email received popup
+  const [showNewEmailPopup, setShowNewEmailPopup] = useState(false)
+  const [newEmailData, setNewEmailData] = useState<{ from: string; subject: string; preview: string } | null>(null)
   // Selected carrier for capacity/rejection
   const [selectedAltCarrier, setSelectedAltCarrier] = useState<string | null>(null)
 
@@ -1548,6 +1551,48 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
     }
     return () => clearTimeout(consumeTimer)
   }, [returnedFromInbox])
+
+  // ─── New Email Received Popup ────────────────────────────────────────────
+  if (showNewEmailPopup && newEmailData) {
+    return (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
+        <div className="w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden animate-in zoom-in-95 fade-in duration-300">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">New Email Received</span>
+            <button onClick={() => setShowNewEmailPopup(false)} className="p-1 rounded hover:bg-gray-100 transition-colors"><X size={14} className="text-gray-400" /></button>
+          </div>
+          <div className="px-5 py-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
+              <Mail size={24} className="text-blue-600" />
+            </div>
+            <p className="text-[14px] font-bold text-gray-900 mb-1">{newEmailData.from}</p>
+            <p className="text-[12px] font-semibold text-gray-700 mb-2 leading-snug">{newEmailData.subject}</p>
+            <p className="text-[11px] text-gray-500">{newEmailData.preview}</p>
+          </div>
+          <div className="px-5 py-4 border-t border-gray-100 flex items-center gap-3">
+            <button
+              onClick={() => {
+                setShowNewEmailPopup(false)
+                onNavigateView?.("email-inbox")
+              }}
+              className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 text-[13px] font-medium rounded-lg hover:bg-gray-50 transition-colors text-center"
+            >
+              View in Inbox
+            </button>
+            <button
+              onClick={() => {
+                setShowNewEmailPopup(false)
+                onNavigateView?.("email-inbox")
+              }}
+              className="flex-1 px-4 py-2.5 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition-colors text-center"
+            >
+              Continue Workflow
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (!resolution) return null
 
@@ -1590,12 +1635,15 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
 
   const handleSendMissingDataEmail = () => {
     onSendNotification?.({ id: `DEMO-SENT-MD-${Date.now()}`, to: "plant-logistics@suzhou.company.com", subject: "Data Request: Shipper Contact for SAP-TM-87234", body: emailBody, timestamp: makeTs(), type: "plant" })
-    // Close modal — user will navigate to inbox to see reply
     setShowModal(false)
-    // Add reply to inbox after 1.5s
+    const ts = makeTs()
     setTimeout(() => {
-      onAddInboxEmail?.({ id: `DEMO-INBOX-MD-${Date.now()}`, from: "li.wei@suzhou.company.com", fromName: "Li Wei (Suzhou Plant)", subject: "RE: Data Request: Shipper Contact for SAP-TM-87234", body: "Hi,\n\nShipper contact for SAP-TM-87234:\n\nName: Li Wei\nPhone: +86 512 6688 7799\nRole: Logistics Coordinator, Suzhou Plant\n\nPlease proceed with the booking.\n\nBest regards,\nLi Wei", timestamp: makeTs(), read: false, tag: "carrier", tags: ["carrier", "data-request"], shipmentId: "BKG-NEW-001", shipmentRef: "SAP-TM-87234" })
+      onAddInboxEmail?.({ id: `DEMO-INBOX-MD-${Date.now()}`, from: "li.wei@suzhou.company.com", fromName: "Li Wei (Suzhou Plant)", subject: "RE: Data Request: Shipper Contact for SAP-TM-87234", body: "Hi,\n\nShipper contact for SAP-TM-87234:\n\nName: Li Wei\nPhone: +86 512 6688 7799\nRole: Logistics Coordinator, Suzhou Plant\n\nPlease proceed with the booking.\n\nBest regards,\nLi Wei", timestamp: ts, read: false, tag: "carrier", tags: ["carrier", "data-request"], shipmentId: "BKG-NEW-001", shipmentRef: "SAP-TM-87234" })
     }, 1500)
+    setTimeout(() => {
+      setNewEmailData({ from: "Li Wei (Suzhou Plant)", subject: "RE: Data Request: Shipper Contact for SAP-TM-87234", preview: "Shipper contact: Li Wei, +86 512 6688 7799, Logistics Coordinator" })
+      setShowNewEmailPopup(true)
+    }, 2000)
   }
 
   // ─── Scenario 2 & 5: No Capacity / Carrier Rejection → contract check → carrier select ──
@@ -1645,12 +1693,16 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
 
   const handleSendRateEmail = () => {
     onSendNotification?.({ id: `DEMO-SENT-RM-${Date.now()}`, to: "rates@maersk.com", subject: "Counter-Offer: SAP-TM-87234 — $3,024/container (SHA→LAX)", body: emailBody, timestamp: makeTs(), type: "carrier" })
-    // Close modal — user will navigate to inbox to see carrier reply with negotiation result
     setShowModal(false)
-    // Add reply to inbox after 1.5s
+    // Add reply to inbox after 1.5s, show popup after 2s
+    const ts = makeTs()
     setTimeout(() => {
-      onAddInboxEmail?.({ id: `DEMO-INBOX-RM-${Date.now()}`, from: "rates@maersk.com", fromName: "Maersk Rate Desk", subject: "RE: Counter-Offer Accepted — $3,024/container (SHA→LAX)", body: "Dear Customer,\n\nWe accept your counter-offer.\n\nConfirmed Rate: $3,024/container\nRoute: SHA→LAX\nBooking: SAP-TM-87234\nSavings: $316/container vs original quote\n\nPlease proceed with booking submission.\n\nMaersk Rate Desk", timestamp: makeTs(), read: false, tag: "carrier", tags: ["carrier", "rate"], shipmentId: "BKG-NEW-001", shipmentRef: "SAP-TM-87234" })
+      onAddInboxEmail?.({ id: `DEMO-INBOX-RM-${Date.now()}`, from: "rates@maersk.com", fromName: "Maersk Rate Desk", subject: "RE: Counter-Offer Accepted — $3,024/container (SHA→LAX)", body: "Dear Customer,\n\nWe accept your counter-offer.\n\nConfirmed Rate: $3,024/container\nRoute: SHA→LAX\nBooking: SAP-TM-87234\nSavings: $316/container vs original quote\n\nPlease proceed with booking submission.\n\nMaersk Rate Desk", timestamp: ts, read: false, tag: "carrier", tags: ["carrier", "rate"], shipmentId: "BKG-NEW-001", shipmentRef: "SAP-TM-87234" })
     }, 1500)
+    setTimeout(() => {
+      setNewEmailData({ from: "Maersk Rate Desk", subject: "RE: Counter-Offer Accepted — $3,024/container (SHA→LAX)", preview: "We accept your counter-offer. Confirmed Rate: $3,024/container" })
+      setShowNewEmailPopup(true)
+    }, 2000)
   }
 
   // Main resolve dispatcher
