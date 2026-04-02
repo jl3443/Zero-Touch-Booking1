@@ -1228,140 +1228,90 @@ function LiveBookingFlow({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4 items-stretch">
-          {shipment.carrierOptions.map((c) => {
+        {/* Recommended carrier — full-width row */}
+        {(() => {
+          const recommended = shipment.carrierOptions.find(c => c.recommended)
+          const alternatives = shipment.carrierOptions.filter(c => !c.recommended)
+          // Pick 1 contracted + 1 premium/different (limit to 2)
+          const contracted = alternatives.find(c => c.hasActiveContract)
+          const other = alternatives.find(c => !c.hasActiveContract || c !== contracted) ?? alternatives.find(c => c !== contracted)
+          const shownAlts = [contracted, other].filter(Boolean) as typeof alternatives
+
+          const renderCarrierRow = (c: typeof shipment.carrierOptions[0], isFull: boolean) => {
             const isSelected = (c.recommended && !carrierOverride && !selectedCarrier) || selectedCarrier === c.carrier
             const rateDiff = c.contractRate ? ((c.rate - c.contractRate) / c.contractRate * 100).toFixed(1) : null
             const carrierUtil = c.volumeUsed && c.volumeCommitted ? Math.round((c.volumeUsed / c.volumeCommitted) * 100) : null
-            const laneUtil = c.laneVolumeUsed && c.laneVolumeCommitted ? Math.round((c.laneVolumeUsed / c.laneVolumeCommitted) * 100) : null
             return (
               <div
                 key={c.carrier}
                 onClick={() => carrierOverride && setSelectedCarrier(c.carrier)}
                 className={cn(
-                  "border rounded-2xl transition-all overflow-hidden flex flex-col",
-                  isSelected
-                    ? "border-blue-400 bg-white shadow-md ring-1 ring-blue-200"
-                    : carrierOverride ? "border-gray-200 hover:border-blue-300 cursor-pointer bg-white" : "border-gray-200 bg-white",
+                  "border rounded-xl transition-all overflow-hidden",
+                  isSelected ? "border-blue-400 bg-white shadow-md ring-1 ring-blue-200" : carrierOverride ? "border-gray-200 hover:border-blue-300 cursor-pointer bg-white" : "border-gray-200 bg-white",
                 )}
               >
-                {/* Card header */}
-                <div className={cn("px-5 py-4 flex items-center justify-between border-b", isSelected ? "bg-blue-50/50 border-blue-100" : "bg-gray-50/50 border-gray-100")}>
+                {/* Header */}
+                <div className={cn("px-4 py-3 flex items-center justify-between border-b", isSelected ? "bg-blue-50/50 border-blue-100" : "bg-gray-50/50 border-gray-100")}>
                   <div className="flex items-center gap-3">
-                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-bold border", isSelected ? "bg-blue-100 text-blue-700 border-blue-200" : "bg-gray-100 text-gray-600 border-gray-200")}>{c.carrier.slice(0, 3).toUpperCase()}</div>
+                    <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center text-[10px] font-bold border", isSelected ? "bg-blue-100 text-blue-700 border-blue-200" : "bg-gray-100 text-gray-600 border-gray-200")}>{c.carrier.slice(0, 3).toUpperCase()}</div>
                     <div>
-                      <span className="text-[15px] font-bold text-gray-900">{c.carrier}</span>
-                      {c.hasActiveContract && (
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <ShieldCheck size={10} className="text-emerald-500" />
-                          <span className="text-[9px] font-semibold text-emerald-600">Contracted</span>
-                          {c.contractId && <span className="text-[9px] text-gray-400 ml-0.5">({c.contractId})</span>}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-bold text-gray-900">{c.carrier}</span>
+                        {c.hasActiveContract && (
+                          <span className="text-[9px] flex items-center gap-0.5 font-semibold text-emerald-600"><ShieldCheck size={10} /> Contracted</span>
+                        )}
+                      </div>
+                      {c.reason && <p className="text-[10px] text-gray-400 mt-0.5">{c.reason}</p>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    {isSelected && (
-                      <span className="text-[9px] px-3 py-1 rounded-full bg-blue-600 text-white font-bold uppercase tracking-wider">AI Pick</span>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="text-[18px] font-extrabold text-gray-900">${c.rate.toLocaleString()}</div>
+                      {rateDiff && (
+                        <span className={cn("text-[10px] font-semibold", Number(rateDiff) <= 0 ? "text-emerald-600" : "text-amber-600")}>
+                          {Number(rateDiff) > 0 ? "+" : ""}{rateDiff}% vs contract
+                        </span>
+                      )}
+                    </div>
+                    {isSelected && <span className="text-[9px] px-2.5 py-1 rounded-full bg-blue-600 text-white font-bold uppercase tracking-wider">AI Pick</span>}
+                  </div>
+                </div>
+                {/* Metrics row */}
+                <div className="px-4 py-3">
+                  <div className={cn("grid gap-3", isFull ? "grid-cols-6" : "grid-cols-4")}>
+                    <div><span className="text-[9px] text-gray-400 uppercase font-medium">Transit</span><div className="text-[13px] font-bold text-gray-900">{c.transitDays} days</div></div>
+                    <div><span className="text-[9px] text-gray-400 uppercase font-medium">Capacity</span><div className={cn("text-[13px] font-bold", c.capacity === "Available" ? "text-emerald-600" : c.capacity === "Limited" ? "text-amber-600" : "text-red-600")}>{c.capacity}</div></div>
+                    <div><span className="text-[9px] text-gray-400 uppercase font-medium">SLA</span><div className="text-[13px] font-bold text-gray-900">{c.sla}%</div></div>
+                    <div><span className="text-[9px] text-gray-400 uppercase font-medium">Contract Rate</span><div className="text-[13px] font-bold text-gray-600">${c.contractRate.toLocaleString()}</div></div>
+                    {isFull && carrierUtil !== null && (
+                      <div className="col-span-2">
+                        <span className="text-[9px] text-gray-400 uppercase font-medium">Volume Commitment</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={cn("h-full rounded-full", carrierUtil >= 90 ? "bg-red-400" : carrierUtil >= 70 ? "bg-amber-400" : "bg-emerald-400")} style={{ width: `${Math.min(100, carrierUtil)}%` }} />
+                          </div>
+                          <span className="text-[11px] font-bold text-gray-700">{carrierUtil}%</span>
+                        </div>
+                        <div className="text-[9px] text-gray-400 mt-0.5">{c.volumeUsed?.toLocaleString()} / {c.volumeCommitted?.toLocaleString()} TEU</div>
+                      </div>
                     )}
                   </div>
                 </div>
-
-                {/* Metrics */}
-                <div className="flex-1 px-5 py-4 space-y-3">
-                  {/* Rate row */}
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Rate</span>
-                      <div className="text-[20px] font-extrabold text-gray-900">${c.rate.toLocaleString()}</div>
-                    </div>
-                    {rateDiff && (
-                      <span className={cn("text-[11px] font-semibold px-2 py-0.5 rounded-full mb-1",
-                        Number(rateDiff) <= 0 ? "bg-emerald-50 text-emerald-700" : Number(rateDiff) <= 3 ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"
-                      )}>
-                        {Number(rateDiff) > 0 ? "+" : ""}{rateDiff}% vs contract
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="h-px bg-gray-100" />
-
-                  {/* Detail grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-2.5 bg-gray-50 rounded-lg">
-                      <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Transit</span>
-                      <div className="text-[15px] font-bold text-gray-900">{c.transitDays} days</div>
-                    </div>
-                    <div className="p-2.5 bg-gray-50 rounded-lg">
-                      <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Capacity</span>
-                      <div className={cn("text-[15px] font-bold", c.capacity === "Available" ? "text-emerald-600" : c.capacity === "Limited" ? "text-amber-600" : "text-red-600")}>{c.capacity}</div>
-                    </div>
-                    <div className="p-2.5 bg-gray-50 rounded-lg">
-                      <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">SLA Score</span>
-                      <div className="text-[15px] font-bold text-gray-900">{c.sla}%</div>
-                    </div>
-                    <div className="p-2.5 bg-gray-50 rounded-lg">
-                      <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Lane Performance</span>
-                      <div className="text-[15px] font-bold text-gray-900">{c.lanePerformance}%</div>
-                    </div>
-                  </div>
-
-                  <div className="h-px bg-gray-100" />
-
-                  {/* Contract rate */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-gray-400 font-medium">Contract Rate</span>
-                    <span className="text-[13px] font-semibold text-gray-600">${c.contractRate.toLocaleString()}</span>
-                  </div>
-
-                  {/* Volume Commitment Progress */}
-                  {c.hasActiveContract && carrierUtil !== null && (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-gray-400 font-medium">Volume Commitment</span>
-                        <span className="text-[10px] font-semibold text-gray-600">{carrierUtil}%</span>
-                      </div>
-                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className={cn("h-full rounded-full transition-all",
-                            carrierUtil >= 90 ? "bg-red-400" : carrierUtil >= 70 ? "bg-amber-400" : "bg-emerald-400"
-                          )}
-                          style={{ width: `${Math.min(100, carrierUtil)}%` }}
-                        />
-                      </div>
-                      <div className="text-[9px] text-gray-400">
-                        {c.volumeUsed?.toLocaleString()} / {c.volumeCommitted?.toLocaleString()} TEU (carrier total)
-                      </div>
-                      {laneUtil !== null && (
-                        <div className="mt-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[9px] text-gray-400">Lane: {laneUtil}%</span>
-                            <span className="text-[9px] text-gray-400">{c.laneVolumeUsed?.toLocaleString()} / {c.laneVolumeCommitted?.toLocaleString()} TEU</span>
-                          </div>
-                          <div className="h-1 bg-gray-100 rounded-full overflow-hidden mt-0.5">
-                            <div
-                              className={cn("h-full rounded-full",
-                                laneUtil >= 90 ? "bg-red-300" : laneUtil >= 70 ? "bg-amber-300" : "bg-emerald-300"
-                              )}
-                              style={{ width: `${Math.min(100, laneUtil)}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Reason footer */}
-                {c.reason && (
-                  <div className="px-5 py-3 bg-gray-50/80 border-t border-gray-100">
-                    <p className="text-[11px] text-gray-500 leading-relaxed">{c.reason}</p>
-                  </div>
-                )}
               </div>
             )
-          })}
-        </div>
+          }
+
+          return (
+            <div className="space-y-3">
+              {recommended && renderCarrierRow(recommended, true)}
+              {shownAlts.length > 0 && (
+                <div className="grid grid-cols-2 gap-3">
+                  {shownAlts.map(c => renderCarrierRow(c, false))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
       </DemoModal>
 
       {/* Step 4: Booking Preview */}
@@ -1613,11 +1563,18 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
     { field: "Shipper Contact", source: "Carrier Portal — Not Found", value: "", confidence: 0, aiResolved: false },
   ]
 
-  const ALT_CARRIERS = [
-    { carrier: "Maersk", route: "SHA → Long Beach (LGB)", mode: "Ocean" as const, vessel: "AE-1240 / Ever Gentle", sailing: "Mar 23, 2024", rate: "$2,920", rateNote: "+2.5% vs contract", transit: "15 days", eta: "Apr 07, 2024", sla: "91%", container: "2×40' HC", capacity: "Available", reason: "Capacity available via alternate port. +1 day transit, within SLA.", recommended: true },
-    { carrier: "MSC", route: "SHA → Los Angeles (LAX)", mode: "Ocean" as const, vessel: "MSC-ANNA / Mar 24", sailing: "Mar 24, 2024", rate: "$2,720", rateNote: "-3% vs contract", transit: "16 days", eta: "Apr 09, 2024", sla: "87%", container: "40' HC", capacity: "Available", reason: "Lower rate, 2 extra transit days. Next available vessel.", recommended: false },
-    { carrier: "DHL Express", route: "SHA → LAX (Air Freight)", mode: "Air" as const, vessel: "CX-882 / Daily", sailing: "Mar 21, 2024", rate: "$8,400", rateNote: "Premium", transit: "3 days", eta: "Mar 24, 2024", sla: "98%", container: "Air Pallet (PMC)", capacity: "Available", reason: "Fastest option. Use for urgent/time-critical shipments only.", recommended: false },
+  // Scenario-specific alternative carriers
+  const ALT_CARRIERS_REJECTION = [
+    { carrier: "MSC", route: "MAA → Houston (IAH)", mode: "Ocean" as const, vessel: "MSC-ANNA / Mar 18", sailing: "Mar 18, 2025", rate: "$2,600", rateNote: "-1.5% vs contract", transit: "22 days", eta: "Apr 09, 2025", sla: "87%", container: "40' HC", capacity: "Available", reason: "Contracted carrier — next available vessel on MAA→IAH.", recommended: true, hasContract: true, contractId: "CTR-2024-002" },
+    { carrier: "CMA-CGM", route: "MAA → Houston via Colombo", mode: "Ocean" as const, vessel: "CMA-Thalassa / Mar 19", sailing: "Mar 19, 2025", rate: "$2,950", rateNote: "+3% vs contract", transit: "24 days", eta: "Apr 12, 2025", sla: "89%", container: "40' HC", capacity: "Available", reason: "Transshipment via Colombo. Slightly longer transit.", recommended: false, hasContract: true, contractId: "CTR-2024-004" },
+    { carrier: "DHL Express", route: "MAA → IAH (Air Freight)", mode: "Air" as const, vessel: "AI-442 / Daily", sailing: "Mar 16, 2025", rate: "$9,200", rateNote: "Premium", transit: "3 days", eta: "Mar 19, 2025", sla: "98%", container: "Air Pallet (PMC)", capacity: "Available", reason: "Urgent option — production impact $45K/day at IAH.", recommended: false, hasContract: false },
   ]
+  const ALT_CARRIERS_CAPACITY = [
+    { carrier: "Maersk", route: "BOM → Rotterdam (RTM)", mode: "Ocean" as const, vessel: "AE-1240 / Mar 24", sailing: "Mar 24, 2025", rate: "$2,350", rateNote: "+2% vs contract", transit: "21 days", eta: "Apr 14, 2025", sla: "92%", container: "20' STD", capacity: "Available", reason: "Contracted carrier — next sailing window with allocation.", recommended: true, hasContract: true, contractId: "CTR-2024-001" },
+    { carrier: "Hapag-Lloyd", route: "BOM → RTM via Colombo", mode: "Ocean" as const, vessel: "Berlin Express / Mar 22", sailing: "Mar 22, 2025", rate: "$2,480", rateNote: "+5% vs contract", transit: "23 days", eta: "Apr 14, 2025", sla: "88%", container: "20' STD", capacity: "Limited", reason: "Transshipment routing. Limited spots remaining.", recommended: false, hasContract: true, contractId: "CTR-2023-003" },
+    { carrier: "DHL Express", route: "BOM → RTM (Air Freight)", mode: "Air" as const, vessel: "LH-762 / Daily", sailing: "Mar 17, 2025", rate: "$7,800", rateNote: "Premium", transit: "2 days", eta: "Mar 19, 2025", sla: "97%", container: "Air Pallet (PMC)", capacity: "Available", reason: "Fastest option for time-critical cargo.", recommended: false, hasContract: false },
+  ]
+  const ALT_CARRIERS = scenario === "carrier-rejection" ? ALT_CARRIERS_REJECTION : ALT_CARRIERS_CAPACITY
 
   // ─── Scenario 1: Missing Data ─────────────────────────────────────────────
   const handleResolveMissingData = () => {
@@ -1806,119 +1763,94 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
           <div className="flex items-center gap-2">
             {contractCheckPhase >= 2 ? <CheckCircle size={12} className="text-emerald-500" /> : <Loader2 size={12} className="text-blue-500 animate-spin" />}
             <span className={cn("text-[11px]", contractCheckPhase >= 2 ? "text-emerald-700" : "text-blue-700")}>
-              {contractCheckPhase >= 2 ? "Checked 3 contracted carriers — all at full capacity on this lane" : "Checking contracted carriers for available capacity..."}
+              {contractCheckPhase >= 2 ? "Checked contracted carriers on this lane" : "Checking contracted carriers for available capacity..."}
             </span>
           </div>
           {contractCheckPhase >= 2 && (
             <div className="flex items-center gap-2">
               {contractCheckPhase >= 3 ? <CheckCircle size={12} className="text-emerald-500" /> : <Loader2 size={12} className="text-blue-500 animate-spin" />}
               <span className={cn("text-[11px]", contractCheckPhase >= 3 ? "text-emerald-700" : "text-blue-700")}>
-                {contractCheckPhase >= 3 ? "Expanded to spot market — 3 alternatives found" : "Expanding search to spot market..."}
+                {contractCheckPhase >= 3 ? `${ALT_CARRIERS.length} alternatives found — select a carrier to rebook` : "Finding alternatives..."}
               </span>
             </div>
           )}
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
-        {/* Section header */}
-        <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Ship size={14} className="text-gray-500" />
-            <span className="text-[12px] font-bold text-gray-700 uppercase tracking-wider">Select Alternative Carrier</span>
-          </div>
-          <span className="text-[10px] text-gray-400">{ALT_CARRIERS.length} options available</span>
-        </div>
-
-        {/* Carrier list */}
-        <div className="divide-y divide-gray-100">
-          {ALT_CARRIERS.map((c) => {
-            const isSelected = selectedAltCarrier === c.carrier
-            const mc = MODE_CARD[c.mode] ?? MODE_CARD.Ocean
-            const MIcon = mc.Icon
-            return (
-              <button
-                key={c.carrier}
-                onClick={() => setSelectedAltCarrier(c.carrier)}
-                className={cn(
-                  "w-full text-left transition-all",
-                  isSelected ? "bg-blue-50/50" : "hover:bg-gray-50/50"
-                )}
-              >
-                {/* Carrier header row */}
-                <div className="px-5 pt-4 pb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center border", mc.bg, mc.border)}>
-                      <MIcon size={18} className={mc.color} />
+      {/* Carrier cards — same layout as Step 2 */}
+      <div className="space-y-3">
+        {/* Recommended — full width */}
+        {ALT_CARRIERS.filter(c => c.recommended).map((c) => {
+          const isSelected = selectedAltCarrier === c.carrier
+          return (
+            <button key={c.carrier} onClick={() => setSelectedAltCarrier(c.carrier)} className={cn("w-full text-left border rounded-xl transition-all overflow-hidden", isSelected ? "border-blue-400 ring-1 ring-blue-200 bg-white shadow-md" : "border-gray-200 hover:border-blue-300 bg-white")}>
+              <div className={cn("px-4 py-3 flex items-center justify-between border-b", isSelected ? "bg-blue-50/50 border-blue-100" : "bg-gray-50/50 border-gray-100")}>
+                <div className="flex items-center gap-3">
+                  <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center text-[10px] font-bold border", isSelected ? "bg-blue-100 text-blue-700 border-blue-200" : "bg-gray-100 text-gray-600 border-gray-200")}>{c.carrier.slice(0, 3).toUpperCase()}</div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14px] font-bold text-gray-900">{c.carrier}</span>
+                      {c.hasContract && <span className="text-[9px] flex items-center gap-0.5 font-semibold text-emerald-600"><ShieldCheck size={10} /> Contracted ({c.contractId})</span>}
+                      <span className="text-[8px] px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold uppercase">Recommended</span>
                     </div>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{c.reason}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[18px] font-extrabold text-gray-900">{c.rate}</div>
+                  <span className={cn("text-[10px] font-semibold", c.rateNote.startsWith("-") ? "text-emerald-600" : "text-amber-600")}>{c.rateNote}</span>
+                </div>
+              </div>
+              <div className="px-4 py-3 grid grid-cols-6 gap-3">
+                <div><span className="text-[9px] text-gray-400 uppercase font-medium">{c.mode === "Air" ? "Flight" : "Vessel"}</span><div className="text-[12px] font-bold text-gray-900">{c.vessel.split(" / ")[0]}</div></div>
+                <div><span className="text-[9px] text-gray-400 uppercase font-medium">Departure</span><div className="text-[12px] font-bold text-gray-900">{c.sailing}</div></div>
+                <div><span className="text-[9px] text-gray-400 uppercase font-medium">Transit</span><div className="text-[12px] font-bold text-gray-900">{c.transit}</div></div>
+                <div><span className="text-[9px] text-gray-400 uppercase font-medium">ETA</span><div className="text-[12px] font-bold text-gray-900">{c.eta}</div></div>
+                <div><span className="text-[9px] text-gray-400 uppercase font-medium">SLA</span><div className="text-[12px] font-bold text-gray-900">{c.sla}</div></div>
+                <div><span className="text-[9px] text-gray-400 uppercase font-medium">Capacity</span><div className={cn("text-[12px] font-bold", c.capacity === "Available" ? "text-emerald-600" : "text-amber-600")}>{c.capacity}</div></div>
+              </div>
+            </button>
+          )
+        })}
+
+        {/* Alternatives — side by side */}
+        <div className="grid grid-cols-2 gap-3">
+          {ALT_CARRIERS.filter(c => !c.recommended).map((c) => {
+            const isSelected = selectedAltCarrier === c.carrier
+            return (
+              <button key={c.carrier} onClick={() => setSelectedAltCarrier(c.carrier)} className={cn("w-full text-left border rounded-xl transition-all overflow-hidden", isSelected ? "border-blue-400 ring-1 ring-blue-200 bg-white shadow-md" : "border-gray-200 hover:border-blue-300 bg-white")}>
+                <div className={cn("px-4 py-3 flex items-center justify-between border-b", isSelected ? "bg-blue-50/50 border-blue-100" : "bg-gray-50/50 border-gray-100")}>
+                  <div className="flex items-center gap-2">
+                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-[9px] font-bold border", isSelected ? "bg-blue-100 text-blue-700 border-blue-200" : "bg-gray-100 text-gray-600 border-gray-200")}>{c.carrier.slice(0, 3).toUpperCase()}</div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-bold text-gray-900">{c.carrier}</span>
-                        {c.recommended && (
-                          <span className="text-[8px] font-bold bg-indigo-600 text-white rounded px-1.5 py-0.5 uppercase tracking-wider flex items-center gap-0.5">
-                            <Brain size={8} /> Recommended
-                          </span>
-                        )}
-                        {isSelected && (
-                          <span className="text-[8px] font-bold bg-blue-600 text-white rounded-full px-2 py-0.5 flex items-center gap-0.5">
-                            <CheckCircle size={8} /> Selected
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className={cn("text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded", mc.bg, mc.color)}>{mc.label}</span>
-                        <span className="text-[11px] text-gray-500">{c.route}</span>
-                      </div>
+                      <span className="text-[13px] font-bold text-gray-900">{c.carrier}</span>
+                      {c.hasContract && <span className="text-[9px] flex items-center gap-0.5 font-semibold text-emerald-600 mt-0.5"><ShieldCheck size={9} /> Contracted</span>}
+                      {c.mode === "Air" && <span className="text-[9px] text-amber-600 font-semibold mt-0.5 block">Air Freight — Premium</span>}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[20px] font-extrabold text-gray-900">{c.rate}</div>
-                    <span className={cn("text-[11px] font-semibold",
-                      c.rateNote === "Premium" ? "text-amber-600" : c.rateNote.startsWith("-") ? "text-emerald-600" : "text-amber-600"
-                    )}>{c.rateNote}</span>
+                    <div className="text-[16px] font-extrabold text-gray-900">{c.rate}</div>
+                    <span className={cn("text-[10px] font-semibold", c.rateNote === "Premium" ? "text-amber-600" : c.rateNote.startsWith("-") ? "text-emerald-600" : "text-amber-600")}>{c.rateNote}</span>
                   </div>
                 </div>
-
-                {/* Data table row */}
-                <div className={cn("mx-5 mb-3 rounded-lg border overflow-hidden", isSelected ? "border-blue-200" : "border-gray-100")}>
-                  <div className="grid grid-cols-4 divide-x divide-gray-100 bg-gray-50/50">
-                    {[
-                      { label: c.mode === "Air" ? "Flight" : "Vessel", value: c.vessel.split(" / ")[0], sub: c.vessel.split(" / ")[1] || "" },
-                      { label: "Departure", value: c.sailing },
-                      { label: "Transit", value: c.transit },
-                      { label: "ETA", value: c.eta },
-                    ].map((col) => (
-                      <div key={col.label} className="px-3 py-2.5">
-                        <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">{col.label}</div>
-                        <div className="text-[12px] font-bold text-gray-800">{col.value}</div>
-                        {col.sub && <div className="text-[9px] text-gray-400">{col.sub}</div>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Footer badges */}
-                <div className="px-5 pb-3 flex items-center gap-3">
-                  <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full",
-                    parseInt(c.sla) >= 95 ? "bg-emerald-50 text-emerald-700" : parseInt(c.sla) >= 90 ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"
-                  )}>SLA {c.sla}</span>
-                  <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{c.container}</span>
-                  <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full",
-                    c.capacity === "Available" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
-                  )}>● {c.capacity}</span>
+                <div className="px-4 py-2.5 grid grid-cols-4 gap-2">
+                  <div><span className="text-[9px] text-gray-400 uppercase font-medium">Transit</span><div className="text-[12px] font-bold text-gray-900">{c.transit}</div></div>
+                  <div><span className="text-[9px] text-gray-400 uppercase font-medium">SLA</span><div className="text-[12px] font-bold text-gray-900">{c.sla}</div></div>
+                  <div><span className="text-[9px] text-gray-400 uppercase font-medium">Capacity</span><div className={cn("text-[12px] font-bold", c.capacity === "Available" ? "text-emerald-600" : "text-amber-600")}>{c.capacity}</div></div>
+                  <div><span className="text-[9px] text-gray-400 uppercase font-medium">ETA</span><div className="text-[12px] font-bold text-gray-900">{c.eta}</div></div>
                 </div>
               </button>
             )
           })}
         </div>
+      </div>
 
-        {/* Integrated footer */}
-        <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-          <span className="text-[11px] text-gray-400">{selectedAltCarrier ? `Selected: ${selectedAltCarrier}` : "Click a carrier to select"}</span>
-          <button onClick={handleConfirmCarrier} disabled={!selectedAltCarrier} className="flex items-center gap-1.5 px-5 py-2 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 shadow-sm">
-            <Check size={14} /> Confirm & Book
-          </button>
-        </div>
+      {/* Footer */}
+      <div className="mt-3 flex items-center justify-between">
+        <span className="text-[11px] text-gray-400">{selectedAltCarrier ? `Selected: ${selectedAltCarrier}` : "Click a carrier to select"}</span>
+        <button onClick={handleConfirmCarrier} disabled={!selectedAltCarrier} className="flex items-center gap-1.5 px-5 py-2 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 shadow-sm">
+          <Check size={14} /> Confirm & Book
+        </button>
       </div>
     </div>
   )
@@ -2294,115 +2226,21 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
     )
   }
 
-  // ─── Independent Carrier Select overlay (not inside exception modal) ──────
+  // ─── Independent Carrier Select overlay (reuses carrierSelectContent) ──────
   if (phase === "carrier-select" && showModal) {
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
-        <div className="w-full max-w-3xl mx-4 max-h-[85vh] animate-in zoom-in-95 fade-in duration-300">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-            {/* Header */}
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <Ship size={20} className="text-blue-600" />
-                </div>
-                <div>
-                  <h2 className="text-[16px] font-bold text-gray-900">Select Alternative Carrier</h2>
-                  <p className="text-[12px] text-gray-500">{ALT_CARRIERS.length} options available — select a carrier to rebook</p>
-                </div>
-              </div>
+        <div className="w-full max-w-3xl mx-4 max-h-[85vh] overflow-y-auto animate-in zoom-in-95 fade-in duration-300 bg-white rounded-2xl border border-gray-200 shadow-2xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+              <Ship size={20} className="text-blue-600" />
             </div>
-
-            {/* Carrier list */}
-            <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
-              {ALT_CARRIERS.map((c) => {
-                const isSelected = selectedAltCarrier === c.carrier
-                const mc = MODE_CARD[c.mode] ?? MODE_CARD.Ocean
-                const MIcon = mc.Icon
-                return (
-                  <button
-                    key={c.carrier}
-                    onClick={() => setSelectedAltCarrier(c.carrier)}
-                    className={cn(
-                      "w-full text-left transition-all",
-                      isSelected ? "bg-blue-50/60" : "hover:bg-gray-50/50"
-                    )}
-                  >
-                    {/* Carrier header */}
-                    <div className="px-6 pt-5 pb-2 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center border", mc.bg, mc.border)}>
-                          <MIcon size={20} className={mc.color} />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[15px] font-bold text-gray-900">{c.carrier}</span>
-                            {c.recommended && (
-                              <span className="text-[9px] font-bold bg-indigo-600 text-white rounded px-2 py-0.5 uppercase tracking-wider flex items-center gap-0.5">
-                                <Brain size={9} /> Recommended
-                              </span>
-                            )}
-                            {isSelected && (
-                              <span className="text-[9px] font-bold bg-blue-600 text-white rounded-full px-2.5 py-0.5 flex items-center gap-0.5">
-                                <CheckCircle size={9} /> Selected
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className={cn("text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded", mc.bg, mc.color)}>{mc.label}</span>
-                            <span className="text-[12px] text-gray-500">{c.route}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-[22px] font-extrabold text-gray-900">{c.rate}</div>
-                        <span className={cn("text-[11px] font-semibold",
-                          c.rateNote === "Premium" ? "text-amber-600" : c.rateNote.startsWith("-") ? "text-emerald-600" : "text-amber-600"
-                        )}>{c.rateNote}</span>
-                      </div>
-                    </div>
-
-                    {/* Data table */}
-                    <div className={cn("mx-6 mb-3 rounded-lg border overflow-hidden", isSelected ? "border-blue-200" : "border-gray-100")}>
-                      <div className="grid grid-cols-4 divide-x divide-gray-100 bg-gray-50/50">
-                        {[
-                          { label: c.mode === "Air" ? "Flight" : "Vessel", value: c.vessel.split(" / ")[0], sub: c.vessel.split(" / ")[1] || "" },
-                          { label: "Departure", value: c.sailing },
-                          { label: "Transit", value: c.transit },
-                          { label: "ETA", value: c.eta },
-                        ].map((col) => (
-                          <div key={col.label} className="px-4 py-3">
-                            <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">{col.label}</div>
-                            <div className="text-[13px] font-bold text-gray-800">{col.value}</div>
-                            {col.sub && <div className="text-[10px] text-gray-400">{col.sub}</div>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Footer badges */}
-                    <div className="px-6 pb-4 flex items-center gap-3">
-                      <span className={cn("text-[10px] font-semibold px-2.5 py-0.5 rounded-full",
-                        parseInt(c.sla) >= 95 ? "bg-emerald-50 text-emerald-700" : parseInt(c.sla) >= 90 ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"
-                      )}>SLA {c.sla}</span>
-                      <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">{c.container}</span>
-                      <span className={cn("text-[10px] font-semibold px-2.5 py-0.5 rounded-full",
-                        c.capacity === "Available" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
-                      )}>● {c.capacity}</span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between shrink-0">
-              <span className="text-[12px] text-gray-400">{selectedAltCarrier ? `Selected: ${selectedAltCarrier}` : "Click a carrier to select"}</span>
-              <button onClick={handleConfirmCarrier} disabled={!selectedAltCarrier} className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 shadow-sm">
-                <Check size={14} /> Confirm & Book
-              </button>
+            <div>
+              <h2 className="text-[16px] font-bold text-gray-900">Select Alternative Carrier</h2>
+              <p className="text-[12px] text-gray-500">{ALT_CARRIERS.length} options available — select a carrier to rebook</p>
             </div>
           </div>
+          {carrierSelectContent}
         </div>
       </div>
     )
