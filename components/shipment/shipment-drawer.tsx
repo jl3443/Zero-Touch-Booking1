@@ -16,7 +16,7 @@ import {
   MapPin, RefreshCw, ChevronRight, Zap, Clock, Calendar,
   Mail, TrendingUp, ArrowUp, ArrowDown,
   Play, Pause, RotateCcw, AlertTriangle, Target, Timer,
-  ChevronDown, Eye, Sparkles, Ship, Plane, Package,
+  ChevronDown, Eye, Sparkles, Ship, Plane, Package, CheckCircle2,
 } from "lucide-react"
 import { ModeIcon } from "./shared"
 import { EmailComposer } from "./email-composer"
