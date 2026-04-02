@@ -507,6 +507,19 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
                         })}
                       </div>
 
+                      {/* Progress bar */}
+                      <div className="mb-4">
+                        <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-blue-500 rounded-full transition-all duration-700 ease-out"
+                            style={{ width: `${Math.min(100, Math.round((negoStep / 4) * 100))}%` }}
+                          />
+                        </div>
+                        <p className="text-[10px] text-slate-500 text-center mt-1.5">
+                          {negoPhase === "complete" ? "100% complete" : `${Math.round((negoStep / 4) * 100)}% complete`}
+                        </p>
+                      </div>
+
                       {/* Results — only when complete */}
                       {negoPhase === "complete" && (
                         <div className="space-y-1.5 animate-in fade-in duration-300">
