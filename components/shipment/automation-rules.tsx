@@ -88,6 +88,7 @@ export function AutomationRulesPage() {
   const [escalations, setEscalations] = useState(ESCALATION_RULES.map((r) => ({ ...r })))
   const [constraints, setConstraints] = useState(HARD_CONSTRAINTS.map((c) => ({ ...c })))
   const [recommendations, setRecommendations] = useState(AI_POLICY_RECOMMENDATIONS.map((r) => ({ ...r })))
+  const [slaRules, setSlaRules] = useState(SLA_RULES.map((r) => ({ ...r })))
   const [selectedOrder, setSelectedOrder] = useState<string>("all")
   const [orderDropdownOpen, setOrderDropdownOpen] = useState(false)
 
@@ -102,6 +103,14 @@ export function AutomationRulesPage() {
 
   const updateThreshold = (idx: number, value: string) => {
     setThresholds((prev) => prev.map((t, i) => i === idx ? { ...t, threshold: value } : t))
+  }
+
+  const toggleSla = (idx: number) => {
+    setSlaRules((prev) => prev.map((r, i) => i === idx ? { ...r, enabled: !r.enabled } : r))
+  }
+
+  const updateSlaTarget = (idx: number, value: string) => {
+    setSlaRules((prev) => prev.map((r, i) => i === idx ? { ...r, target: value } : r))
   }
 
   const toggleEscalation = (id: string) => {
@@ -225,44 +234,49 @@ export function AutomationRulesPage() {
               </div>
             </div>
 
-            {/* ── Section 2: Auto-Approval Thresholds ────────────────────── */}
+            {/* ── Section 2: SLA Targets (replaces Auto-Approval Thresholds) ── */}
             <div className="bg-white rounded-xl border border-gray-200">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-                <Shield size={14} className="text-green-600" />
-                <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Auto-Approval Thresholds</span>
+                <Activity size={14} className="text-green-600" />
+                <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">SLA Targets</span>
                 <span className="ml-auto text-[10px] text-green-600 font-medium">
-                  {thresholds.filter((t) => t.enabled).length}/{thresholds.length} active
+                  {slaRules.filter((r) => r.enabled).length}/{slaRules.length} active
                 </span>
               </div>
               <div className="divide-y divide-gray-50">
-                {thresholds.map((t, idx) => (
-                  <div key={t.rule} className="flex items-center gap-4 px-4 py-3.5">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-semibold text-gray-700 mb-1.5">{t.rule}</div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-gray-400">Threshold:</span>
-                          <input
-                            type="text"
-                            value={t.threshold}
-                            onChange={(e) => updateThreshold(idx, e.target.value)}
-                            className="text-[11px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-md px-2 py-1 w-24 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 hover:border-gray-300 transition-colors"
-                          />
+                {slaRules.map((rule, idx) => {
+                  const meets = rule.direction === "min"
+                    ? rule.numericCurrent <= rule.numericTarget
+                    : rule.numericCurrent >= rule.numericTarget
+                  return (
+                    <div key={rule.id} className="flex items-center gap-4 px-4 py-3.5">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-semibold text-gray-700 mb-1.5">{rule.name}</div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-gray-400">Threshold:</span>
+                            <input
+                              type="text"
+                              value={rule.target}
+                              onChange={(e) => updateSlaTarget(idx, e.target.value)}
+                              className="text-[11px] font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-md px-2 py-1 w-24 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-200 hover:border-gray-300 transition-colors"
+                            />
+                          </div>
+                          <span className="text-[10px] text-gray-300">|</span>
+                          <span className="text-[10px] text-gray-400">Current: <span className={cn("font-semibold", meets ? "text-green-600" : "text-amber-600")}>{rule.currentValue}</span></span>
                         </div>
-                        <span className="text-[10px] text-gray-300">|</span>
-                        <span className="text-[10px] text-gray-400">Current: <span className="font-semibold text-gray-600">{t.currentValue}</span></span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {rule.enabled ? (
+                          meets ? <CheckCircle2 size={12} className="text-green-500" /> : <AlertTriangle size={12} className="text-amber-500" />
+                        ) : (
+                          <XCircle size={12} className="text-gray-300" />
+                        )}
+                        <ToggleSwitch enabled={rule.enabled} onToggle={() => toggleSla(idx)} />
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {t.enabled ? (
-                        <CheckCircle2 size={12} className="text-green-500" />
-                      ) : (
-                        <XCircle size={12} className="text-gray-300" />
-                      )}
-                      <ToggleSwitch enabled={t.enabled} onToggle={() => toggleThreshold(idx)} />
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 
@@ -486,57 +500,7 @@ export function AutomationRulesPage() {
               </div>
             </div>
 
-            {/* ── Section 6: SLA Targets ───────────────────────────────── */}
-            <div className="bg-white rounded-xl border border-gray-200">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-                <Activity size={14} className="text-blue-600" />
-                <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">SLA Targets</span>
-                <span className="ml-auto text-[10px] text-gray-400">
-                  {SLA_RULES.filter(r => r.enabled).length} of {SLA_RULES.length} monitored
-                </span>
-              </div>
-              <div className="divide-y divide-gray-50">
-                {SLA_RULES.map((rule) => {
-                  const meets = rule.direction === "min"
-                    ? rule.numericCurrent <= rule.numericTarget
-                    : rule.numericCurrent >= rule.numericTarget
-                  const nearMiss = rule.direction === "min"
-                    ? rule.numericCurrent <= rule.numericTarget * 1.15
-                    : rule.numericCurrent >= rule.numericTarget * 0.9
-                  const statusColor = meets ? "text-green-600 bg-green-50" : nearMiss ? "text-amber-600 bg-amber-50" : "text-red-600 bg-red-50"
-                  const statusLabel = meets ? "On Target" : nearMiss ? "Near Miss" : "Below Target"
-                  return (
-                    <div key={rule.id} className="flex items-center gap-3 px-4 py-3.5">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-xs font-semibold text-gray-800">{rule.name}</span>
-                          <span className="text-[9px] font-mono text-gray-400">{rule.id}</span>
-                          <span className={cn("text-[9px] font-semibold px-1.5 py-0.5 rounded-full", statusColor)}>{statusLabel}</span>
-                        </div>
-                        <p className="text-[10px] text-gray-500">{rule.description}</p>
-                        <div className="flex items-center gap-4 mt-1.5">
-                          <span className="text-[10px] text-gray-500">Target: <span className="font-semibold text-gray-700">{rule.target}</span></span>
-                          <span className="text-[10px] text-gray-500">Current: <span className={cn("font-semibold", meets ? "text-green-700" : "text-amber-700")}>{rule.currentValue}</span></span>
-                        </div>
-                      </div>
-                      <button
-                        className={cn(
-                          "relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0",
-                          rule.enabled ? "bg-blue-600" : "bg-gray-300"
-                        )}
-                      >
-                        <span className={cn(
-                          "inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform shadow-sm",
-                          rule.enabled ? "translate-x-[18px]" : "translate-x-[3px]"
-                        )} />
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* ── Section 7: AI Policy Recommendations ─────────────────────── */}
+            {/* ── Section 6: AI Policy Recommendations ─────────────────────── */}
             <div className="bg-white rounded-xl border border-gray-200">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
                 <Sparkles size={14} className="text-violet-600" />
