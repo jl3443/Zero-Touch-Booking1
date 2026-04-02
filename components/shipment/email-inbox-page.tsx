@@ -37,7 +37,7 @@ export function EmailInboxPage({ onOpenTracking, onMarkRead, dynamicEmails = [],
     shipmentId: e.shipmentId, shipmentRef: e.shipmentRef,
   }))
   const [emails, setEmails] = useState<InboxEmail[]>(INBOX_EMAILS)
-  const allEmails = [...DEMO_TRIGGER_EMAILS, ...dynamicAsInbox, ...emails]
+  const allEmails = [...dynamicAsInbox, ...DEMO_TRIGGER_EMAILS, ...emails]
 
   const [demoAnalysisPhase, setDemoAnalysisPhase] = useState(0)
   const [demoAnalysisDone, setDemoAnalysisDone] = useState(false)

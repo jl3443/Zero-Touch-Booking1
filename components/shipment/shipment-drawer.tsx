@@ -1638,15 +1638,7 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
     }, 900)
   }
 
-  // Auto-start rate-mismatch flow (skip "showing" phase, go straight to email compose)
-  useEffect(() => {
-    if (scenarioId === "rate-mismatch" && phase === "showing") {
-      const t = setTimeout(() => handleResolveRateMismatch(), 2000)
-      return () => clearTimeout(t)
-    }
-  }, [scenarioId, phase])
-
-  // ─── Scenario 4: Rate Mismatch → email compose → negotiation spinner ──
+  // ─── Scenario 4: Rate Mismatch → auto email compose → auto send → inbox reply ──
   const handleResolveRateMismatch = () => {
     setPhase("email-compose")
     setEmailBody("Dear Maersk Booking Team,\n\nRe: Booking SAP-TM-87234 (SHA→LAX)\n\nThe quoted rate of $3,340/container is 19% above our contract rate of $2,800.\n\nBased on current market conditions (SHA→LAX 30-day avg: $3,480), we propose a counter-rate of $3,024/container (contract + 8% market adjustment).\n\nPlease confirm acceptance to proceed with booking.\n\nRegards,\nZero Touch Booking Agent")
