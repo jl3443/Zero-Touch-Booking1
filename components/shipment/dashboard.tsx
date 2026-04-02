@@ -621,8 +621,8 @@ function KpiRow({ bookingsCount, exceptionsCount, zeroTouchRate }: {
               <span className="text-[10px] font-medium text-green-600">+8 this week</span>
             </div>
           </div>
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-green-100">
-            <FileCheck size={14} className="text-green-600" />
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-100">
+            <FileCheck size={14} className="text-blue-600" />
           </div>
         </div>
       </motion.div>
@@ -659,8 +659,8 @@ function KpiRow({ bookingsCount, exceptionsCount, zeroTouchRate }: {
               <span className="text-[10px] font-medium text-green-600">+3.2% this month</span>
             </div>
           </div>
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-purple-100">
-            <Zap size={14} className="text-purple-600" />
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-100">
+            <Zap size={14} className="text-blue-600" />
           </div>
         </div>
       </motion.div>
@@ -678,8 +678,8 @@ function KpiRow({ bookingsCount, exceptionsCount, zeroTouchRate }: {
               <span className="text-[10px] font-medium text-green-600">-1.4% this week</span>
             </div>
           </div>
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-amber-100">
-            <AlertTriangle size={14} className="text-amber-600" />
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-100">
+            <AlertTriangle size={14} className="text-blue-600" />
           </div>
         </div>
       </motion.div>

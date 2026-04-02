@@ -72,14 +72,14 @@ export function BookingStatusBadge({ status }: { status: BookingStatus }) {
 // ─── Carrier Badge ────────────────────────────────────────────────────────────
 export function CarrierBadge({ carrier }: { carrier: string }) {
   const map: Record<string, string> = {
-    "Maersk": "bg-sky-700 text-white",
-    "MSC": "bg-blue-700 text-white",
-    "Hapag-Lloyd": "bg-orange-600 text-white",
-    "CMA-CGM": "bg-red-700 text-white",
-    "FedEx Freight": "bg-purple-600 text-white",
-    "DHL Freight": "bg-yellow-500 text-yellow-900",
-    "XPO Logistics": "bg-indigo-600 text-white",
-    "J.B. Hunt": "bg-teal-600 text-white",
+    "Maersk": "bg-[#0000B3] text-white",
+    "MSC": "bg-[#1A1ACD] text-white",
+    "Hapag-Lloyd": "bg-[#3333E0] text-white",
+    "CMA-CGM": "bg-[#4D4DF0] text-white",
+    "FedEx Freight": "bg-[#6666F5] text-white",
+    "DHL Freight": "bg-[#8080F8] text-white",
+    "XPO Logistics": "bg-[#9999FA] text-white",
+    "J.B. Hunt": "bg-[#B3B3FC] text-gray-900",
   }
   return (
     <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide", map[carrier] ?? "bg-gray-200 text-gray-700")}>
@@ -92,10 +92,10 @@ export function CarrierBadge({ carrier }: { carrier: string }) {
 export function ExceptionBadge({ type }: { type: BookingExceptionType }) {
   const map: Record<BookingExceptionType, string> = {
     "Missing Allocation": "bg-amber-50 text-amber-700 border-amber-200",
-    "Portal Unavailable": "bg-purple-50 text-purple-700 border-purple-200",
-    "Rate Mismatch": "bg-red-50 text-red-700 border-red-200",
-    "Missing Booking Fields": "bg-indigo-50 text-indigo-700 border-indigo-200",
-    "Carrier Rejection": "bg-red-50 text-red-800 border-red-300",
+    "Portal Unavailable": "bg-blue-50 text-blue-700 border-blue-200",
+    "Rate Mismatch": "bg-amber-50 text-amber-700 border-amber-200",
+    "Missing Booking Fields": "bg-blue-50 text-blue-700 border-blue-200",
+    "Carrier Rejection": "bg-red-50 text-red-700 border-red-200",
     "Credentials Expired": "bg-gray-100 text-gray-600 border-gray-300",
     "None": "bg-blue-50 text-blue-600 border-blue-200",
   }
