@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 import {
   X, Brain, CheckCircle, Send, AlertOctagon, ArrowRight,
   Check, Loader2, FileText, Anchor, Truck, Upload, Bell,
-  Monitor, Search, ShieldCheck,
+  Monitor, Search, ShieldCheck, Maximize2, Minimize2,
   MapPin, RefreshCw, ChevronRight, Zap, Clock, Calendar,
   Mail, TrendingUp, ArrowUp, ArrowDown,
   Play, Pause, RotateCcw, AlertTriangle, Target, Timer,
@@ -150,6 +150,7 @@ export function ShipmentDrawer({ shipment, onClose, onOpenWeather, onSendNotific
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [loadingTick, setLoadingTick] = useState(0)
+  const [expanded, setExpanded] = useState(bookingMode ?? false)
   // Req 5: Track reroute approval for timeline color change
   const [approvedReroute, setApprovedReroute] = useState(false)
   // Req 4: Notification confirmation card
@@ -158,6 +159,11 @@ export function ShipmentDrawer({ shipment, onClose, onOpenWeather, onSendNotific
   const [showNotifyPrompt, setShowNotifyPrompt] = useState(false)
   // Track what type of notification was sent
   const [notifyType, setNotifyType] = useState<"email" | "message" | "both" | null>(null)
+
+  // Auto-expand when booking mode starts
+  useEffect(() => {
+    if (bookingMode) setExpanded(true)
+  }, [bookingMode])
 
   useEffect(() => {
     setIsLoading(true)
@@ -223,7 +229,12 @@ export function ShipmentDrawer({ shipment, onClose, onOpenWeather, onSendNotific
   return (
     <>
       <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
-      <aside className="fixed right-0 top-0 h-screen w-[520px] bg-white border-l border-gray-200 shadow-2xl z-50 flex flex-col overflow-hidden">
+      <aside className={cn(
+        "fixed bg-white shadow-2xl z-50 flex flex-col overflow-hidden transition-all duration-300",
+        expanded
+          ? "inset-0 m-auto w-[900px] max-w-[calc(100vw-80px)] h-[90vh] rounded-xl border border-gray-200"
+          : "right-0 top-0 h-screen w-[520px] border-l border-gray-200"
+      )}>
         {/* ── Header ─────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-gray-50 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
@@ -239,9 +250,14 @@ export function ShipmentDrawer({ shipment, onClose, onOpenWeather, onSendNotific
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setExpanded(e => !e)} className="text-gray-400 hover:text-gray-600 transition-colors p-1" title={expanded ? "Collapse" : "Expand"}>
+              {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* ── Loading state ──────────────────────────────────────────── */}
