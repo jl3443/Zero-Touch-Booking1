@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Sparkles, UserCircle, ChevronDown, Mail, Inbox, Send, BarChart2, Ship, Square, ArrowRight, Settings2, Shield, Code2, FileText } from "lucide-react"
+import { Sparkles, UserCircle, ChevronDown, Mail, Inbox, Send, BarChart2, Ship, Settings2, Shield, Code2, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { DEMO_SCENARIOS, DEMO_STEP_DETAILS } from "@/lib/mock-data"
+import { DEMO_SCENARIOS } from "@/lib/mock-data"
 import { type Persona } from "./login-page"
 
 export type ViewTab = "dashboard" | "analytics" | "email-inbox" | "email-sent" | "automation-rules" | "policy" | "api" | "carriers" | "contracts"
@@ -16,12 +16,9 @@ interface TopBarProps {
   aiPanelOpen: boolean
   persona?: Persona
   // Demo mode
-  demoActive?: boolean
-  demoStep?: number
   demoScenario?: string
+  demoActive?: boolean
   onStartDemo?: (scenarioId: string) => void
-  onStopDemo?: () => void
-  onGoToDashboard?: () => void
   // Badges
   unreadInboxCount?: number
   exceptionsCount?: number
@@ -47,12 +44,9 @@ export function TopBar({
   onAiToggle,
   aiPanelOpen,
   persona,
-  demoActive,
-  demoStep,
   demoScenario,
+  demoActive,
   onStartDemo,
-  onStopDemo,
-  onGoToDashboard,
   unreadInboxCount = 0,
   exceptionsCount = 0,
 }: TopBarProps) {
@@ -75,46 +69,8 @@ export function TopBar({
     prevUnread.current = unreadInboxCount
   }, [unreadInboxCount])
 
-  // Demo step label
-  const stepLabel = demoStep && demoStep >= 1 && demoStep <= 8
-    ? DEMO_STEP_DETAILS[demoStep - 1].thinkingLabel.replace("...", "")
-    : demoStep && demoStep > 8 ? "Booking Complete" : "Starting..."
-
   return (
     <header className="shrink-0">
-      {/* Demo mode banner */}
-      {demoActive && (
-        <div className="flex items-center justify-between px-5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[11px]">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-            </span>
-            <span className="font-bold uppercase tracking-wider">Demo Mode</span>
-            <span className="text-white/70">|</span>
-            {demoStep && demoStep >= 1 ? (
-              <span className="text-white/90">
-                Step {Math.min(demoStep, 8)} of 8: {stepLabel}
-              </span>
-            ) : (
-              <button
-                onClick={onGoToDashboard}
-                className="flex items-center gap-1 text-white/90 hover:text-white transition-colors underline underline-offset-2"
-              >
-                New shipment waiting on Dashboard — click to view
-                <ArrowRight size={11} />
-              </button>
-            )}
-          </div>
-          <button
-            onClick={onStopDemo}
-            className="flex items-center gap-1 px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors font-medium"
-          >
-            <Square size={10} /> End Demo
-          </button>
-        </div>
-      )}
-
       {/* Main nav bar */}
       <div className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-6">
         {/* Left: Logo + nav dropdowns */}

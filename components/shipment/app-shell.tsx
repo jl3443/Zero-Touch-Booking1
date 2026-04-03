@@ -148,12 +148,9 @@ export function AppShell({ persona }: { persona?: Persona }) {
         onAiToggle={() => setAiChatOpen((prev) => !prev)}
         aiPanelOpen={aiChatOpen}
         persona={persona}
-        demoActive={demoActive}
-        demoStep={demoStep}
         demoScenario={demoScenario}
+        demoActive={demoActive}
         onStartDemo={handleStartDemo}
-        onStopDemo={handleStopDemo}
-        onGoToDashboard={() => { setActiveTab("dashboard"); setDemoShipmentVisible(true) }}
         unreadInboxCount={unreadInboxCount}
         exceptionsCount={exceptionsCount}
       />
