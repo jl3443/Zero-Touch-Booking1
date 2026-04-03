@@ -53,11 +53,11 @@ function WorkflowProgress({ steps }: { steps: BookingRequest["workflowSteps"] })
     <div className="flex items-center gap-1.5">
       <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
         <div
-          className={cn("h-full rounded-full transition-all", failed ? "bg-red-500" : completed === total ? "bg-green-500" : "bg-blue-500")}
+          className={cn("h-full rounded-full transition-all", failed ? "bg-[#3838E0]" : completed === total ? "bg-[#0000B3]" : "bg-blue-500")}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className={cn("text-[10px] font-mono", failed ? "text-red-600" : "text-gray-500")}>{completed}/{total}</span>
+      <span className={cn("text-[10px] font-mono", failed ? "text-blue-600" : "text-gray-500")}>{completed}/{total}</span>
     </div>
   )
 }
