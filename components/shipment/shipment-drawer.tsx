@@ -1538,6 +1538,11 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
   const [newEmailData, setNewEmailData] = useState<{ from: string; subject: string; preview: string } | null>(null)
   // Selected carrier for capacity/rejection
   const [selectedAltCarrier, setSelectedAltCarrier] = useState<string | null>(null)
+  // Contract check phase (no-capacity / carrier-rejection)
+  const [contractCheckPhase, setContractCheckPhase] = useState(0)
+  // Email compose card state
+  const [showCcBcc, setShowCcBcc] = useState(false)
+  const [followUpDate, setFollowUpDate] = useState("")
 
   // When user returns from inbox after reading reply email
   useEffect(() => {
@@ -1663,7 +1668,6 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
   }
 
   // ─── Scenario 2 & 5: No Capacity / Carrier Rejection → contract check → carrier select ──
-  const [contractCheckPhase, setContractCheckPhase] = useState(0) // 0=idle, 1=checking contracts, 2=no contracted available, 3=done
   const handleResolveWithCarrierSelect = () => {
     setPhase("resolving")
     setContractCheckPhase(1)
@@ -1732,8 +1736,6 @@ function DemoExceptionOverlay({ scenarioId, onResolve, onSendNotification, onAdd
 
 
   // ─── Email Compose Card (Gmail-style, shared by missing-data and rate-mismatch) ──
-  const [showCcBcc, setShowCcBcc] = useState(false)
-  const [followUpDate, setFollowUpDate] = useState("")
   const emailTo = scenarioId === "rate-mismatch" ? "rates@maersk.com" : "plant-logistics@suzhou.company.com"
   const emailSubject = scenarioId === "rate-mismatch" ? "Counter-Offer: SAP-TM-87234 — $3,024/container" : "Data Request: Shipper Contact for SAP-TM-87234"
 
