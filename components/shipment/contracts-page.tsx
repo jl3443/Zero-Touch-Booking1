@@ -14,14 +14,14 @@ const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } }
 const fadeUp = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } }
 
 const STATUS_BADGE: Record<string, string> = {
-  Active: "bg-green-50 border-green-200 text-green-700",
+  Active: "bg-sky-50 border-sky-200 text-sky-700",
   "Expiring Soon": "bg-amber-50 border-amber-200 text-amber-700",
   Expired: "bg-red-50 border-red-200 text-red-700",
   "Under Review": "bg-blue-50 border-blue-200 text-blue-700",
 }
 
 const STATUS_DOT: Record<string, string> = {
-  Active: "bg-green-500",
+  Active: "bg-sky-500",
   "Expiring Soon": "bg-amber-500 animate-pulse",
   Expired: "bg-red-500",
   "Under Review": "bg-blue-500",
@@ -29,10 +29,10 @@ const STATUS_DOT: Record<string, string> = {
 
 function UtilizationBar({ used, total }: { used: number; total: number }) {
   const pct = Math.round((used / total) * 100)
-  const color = pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-amber-500" : "bg-green-500"
+  const color = pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-amber-500" : "bg-sky-500"
   return (
     <div className="flex items-center gap-2">
-      <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
+      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
@@ -40,7 +40,7 @@ function UtilizationBar({ used, total }: { used: number; total: number }) {
           className={cn("h-full rounded-full", color)}
         />
       </div>
-      <span className={cn("text-[11px] font-bold tabular-nums", pct >= 90 ? "text-red-600" : pct >= 70 ? "text-amber-600" : "text-green-600")}>
+      <span className={cn("text-[11px] font-bold tabular-nums shrink-0", pct >= 90 ? "text-red-600" : pct >= 70 ? "text-amber-600" : "text-sky-600")}>
         {pct}%
       </span>
     </div>
@@ -52,7 +52,7 @@ function RateDelta({ contract, spot }: { contract: number; spot: number }) {
   const pct = ((delta / contract) * 100).toFixed(1)
   const isSaving = delta > 0 // contract is cheaper
   return (
-    <span className={cn("text-[10px] font-semibold", isSaving ? "text-green-600" : "text-red-600")}>
+    <span className={cn("text-[10px] font-semibold", isSaving ? "text-sky-600" : "text-amber-600")}>
       {isSaving ? `↓ $${delta} saved (${pct}%)` : `↑ $${Math.abs(delta)} over (+${Math.abs(parseFloat(pct))}%)`}
     </span>
   )
@@ -116,9 +116,9 @@ export function ContractsPage() {
         <motion.div variants={fadeUp} className="grid grid-cols-4 gap-2">
           {[
             { label: "Active Contracts", value: activeContracts.length, icon: FileText, iconBg: "bg-blue-100", iconColor: "text-blue-600", sub: `${CONTRACT_DATA.length} total` },
-            { label: "Total Volume", value: `${(totalUsed / 1000).toFixed(1)}K`, icon: Package, iconBg: "bg-green-100", iconColor: "text-green-600", sub: `of ${(totalVolume / 1000).toFixed(0)}K TEU` },
-            { label: "Avg Utilization", value: `${avgUtil}%`, icon: BarChart2, iconBg: "bg-purple-100", iconColor: "text-purple-600", sub: avgUtil >= 80 ? "On track" : "Below target" },
-            { label: "Action Needed", value: expiringSoon, icon: AlertTriangle, iconBg: "bg-amber-100", iconColor: "text-amber-600", sub: "Expiring / Expired" },
+            { label: "Total Volume", value: `${(totalUsed / 1000).toFixed(1)}K`, icon: Package, iconBg: "bg-blue-100", iconColor: "text-blue-600", sub: `of ${(totalVolume / 1000).toFixed(0)}K TEU` },
+            { label: "Avg Utilization", value: `${avgUtil}%`, icon: BarChart2, iconBg: "bg-blue-100", iconColor: "text-blue-600", sub: avgUtil >= 80 ? "On track" : "Below target" },
+            { label: "Action Needed", value: expiringSoon, icon: AlertTriangle, iconBg: "bg-blue-100", iconColor: "text-blue-600", sub: "Expiring / Expired" },
           ].map(k => (
             <div key={k.label} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
               <div className="flex items-start justify-between">
@@ -144,7 +144,7 @@ export function ContractsPage() {
           </div>
 
           {/* Table header */}
-          <div className="grid grid-cols-[200px_100px_100px_100px_140px_160px_40px] gap-2 px-4 py-2 border-b border-slate-100 bg-slate-50/50">
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr_1.5fr_40px] gap-2 px-4 py-2 border-b border-slate-100 bg-slate-50/50">
             {["Contract / Carrier", "Status", "Effective", "Expiry", "Volume (TEU)", "Utilization", ""].map(h => (
               <span key={h} className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">{h}</span>
             ))}
@@ -160,7 +160,7 @@ export function ContractsPage() {
             >
               <div
                 className={cn(
-                  "grid grid-cols-[200px_100px_100px_100px_140px_160px_40px] gap-2 px-4 py-3 border-b border-slate-50 cursor-pointer transition-colors",
+                  "grid grid-cols-[2fr_1fr_1fr_1fr_1.2fr_1.5fr_40px] gap-2 px-4 py-3 border-b border-slate-50 cursor-pointer transition-colors",
                   expandedId === contract.id ? "bg-blue-50/50" : "hover:bg-slate-50"
                 )}
                 onClick={() => setExpandedId(expandedId === contract.id ? null : contract.id)}
