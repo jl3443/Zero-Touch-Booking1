@@ -699,7 +699,7 @@ function LiveBookingFlow({
       setShowStepModal(null)
       setCarrierOverride(false)
       setSelectedCarrier(null)
-      setShowReasoning(false)
+      setShowReasoning(true)
       const t = setTimeout(() => onStepAdvance?.(1), 800)
       return () => clearTimeout(t)
     }
